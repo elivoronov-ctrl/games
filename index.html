@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Original browser games, three new ones every day. Play free in your browser on a computer or phone.">
+<meta property="og:title" content="Daily Game Factory">
+<meta property="og:description" content="Original browser games, three new ones every day. Play free in your browser.">
+<meta property="og:image" content="https://games.getsimpleinvoice.app/shots/ore-drift-2.jpg">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%233449f0'/%3E%3Cpath d='M24 18l24 14-24 14z' fill='%23fff'/%3E%3C/svg%3E">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Daily Game Factory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a release log. Each day is a dated "run" with its games as wide rows: screenshot on the left, notes on the right. */
+:root{
+  --bg:#eceef6; --panel:#ffffff; --ink:#151a33; --muted:#5b6185; --line:#d4d8ea;
+  --accent:#3449f0; --accent-ink:#ffffff; --gold:#f2a516; --gold-ink:#3a2600; --chip:#e2e5f3;
+  --display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
+  --body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0e1122; --panel:#171b33; --ink:#e9ebf8; --muted:#9aa0c4; --line:#2a2f52;
+  --accent:#7d8cff; --accent-ink:#0e1122; --gold:#f5b53a; --gold-ink:#2a1a00; --chip:#232845; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#0e1122; --panel:#171b33; --ink:#e9ebf8; --muted:#9aa0c4; --line:#2a2f52;
+  --accent:#7d8cff; --accent-ink:#0e1122; --gold:#f5b53a; --gold-ink:#2a1a00; --chip:#232845; color-scheme:dark }
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55;margin:0}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:40px 64px}
+
+header{display:grid;gap:14px;padding-bottom:28px;border-bottom:2px solid var(--ink)}
+.kicker{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(40px,7vw,76px);line-height:.95;letter-spacing:-.02em;margin:0;text-wrap:balance}
+h1 .dot{color:var(--accent)}
+.lede{max-width:62ch;color:var(--muted);margin:0;font-size:16px}
+.stats{display:flex;flex-wrap:wrap;gap:8px 28px;font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
+.stats b{font-family:var(--display);font-size:26px;font-weight:700;display:block;line-height:1.1;color:var(--ink)}
+.stats span{color:var(--muted)}
+
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0 6px}
+.filters button{font:500 13px var(--body);color:var(--ink);background:var(--chip);border:1px solid transparent;border-radius:999px;padding:6px 14px;cursor:pointer}
+.filters button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.filters button:focus-visible,.btn:focus-visible,.thumb:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+.run{margin-top:34px}
+.run-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.run-date{font-family:var(--display);font-weight:700;font-size:24px;margin:0}
+.run-meta{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.games{display:grid;gap:18px}
+
+.game{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:22px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+.media{display:grid;gap:8px;min-width:0}
+.shot{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:8px;display:block;background:var(--chip)}
+.thumbs{display:flex;gap:8px}
+.thumb{padding:0;border:2px solid transparent;border-radius:6px;background:none;cursor:pointer;width:96px;max-width:30%;line-height:0}
+.thumb img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:4px}
+.thumb[aria-pressed="true"]{border-color:var(--accent)}
+
+.info{display:flex;flex-direction:column;gap:10px;min-width:0}
+.info h2{font-family:var(--display);font-weight:700;font-size:30px;line-height:1.05;margin:0;letter-spacing:-.01em}
+.pitch{margin:0;font-size:15.5px}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{font-family:var(--mono);font-size:11.5px;background:var(--chip);color:var(--ink);border-radius:5px;padding:2px 8px}
+.tag.multi{background:var(--gold);color:var(--gold-ink);font-weight:600}
+.facts{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:13.5px;margin:2px 0 0}
+.facts dt{color:var(--muted);font-family:var(--mono);font-size:12px;padding-top:2px}
+.facts dd{margin:0}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:auto;padding-top:6px}
+.btn{font:600 14px var(--body);text-decoration:none;border-radius:9px;padding:9px 16px;display:inline-flex;align-items:center;gap:8px}
+.btn.play{background:var(--accent);color:var(--accent-ink)}
+.btn.src{border:1px solid var(--line);color:var(--ink)}
+.btn.play:hover{filter:brightness(1.08)}
+.btn.src:hover{background:var(--chip)}
+.url{font-family:var(--mono);font-size:12px;color:var(--muted);word-break:break-all}
+.empty{color:var(--muted);padding:30px 0}
+footer{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}
+
+@media (max-width:760px){ .game{grid-template-columns:1fr} .info h2{font-size:26px} }
+@media (prefers-reduced-motion:no-preference){ .shot{transition:opacity .2s} }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">elivoronov-ctrl · browser games, built daily</div>
+    <h1>Daily Game Factory<span class="dot">.</span></h1>
+    <p class="lede">Every run produces three brand-new, original browser games: a mix of 2D and 3D, of genres, and at least one online multiplayer game. Each one is a single HTML file you can play right here in your browser, on a computer or a phone.</p>
+    <div class="stats" id="stats"></div>
+  </header>
+
+  <div class="filters" role="group" aria-label="Filter games" id="filters">
+    <button type="button" data-f="all" aria-pressed="true">All games</button>
+    <button type="button" data-f="3D" aria-pressed="false">3D</button>
+    <button type="button" data-f="2D" aria-pressed="false">2D</button>
+    <button type="button" data-f="multi" aria-pressed="false">Multiplayer</button>
+  </div>
+
+  <main id="list"></main>
+
+  <footer>Games are free to play and open source on GitHub. High scores are saved in your own browser.</footer>
+</div>
+
+<script>
+const GAMES = [
+  { date:"2026-11-13", slug:"ore-drift", title:"Ore Drift", dim:"3D", mode:"multi", genre:"Arcade mining", theme:"Asteroid mining",
+    structure:"Progression: 6 upgrade lines, ranks 1–10, 4 zones",
+    pitch:"Mine glowing asteroids, upgrade your rig and buy your way out of the belt while other prospectors fly beside you online.",
+    tech:"Three.js · Supabase Realtime", shots:["shots/ore-drift-1.jpg","shots/ore-drift-2.jpg"] },
+  { date:"2026-11-13", slug:"big-top-bounce", title:"Big Top Bounce", dim:"2D", mode:"single", genre:"Platformer", theme:"Circus acrobats",
+    structure:"10 acts: trampolines, trapezes, tightropes, clowns, fire hoops, lions, cannons",
+    pitch:"Ten circus acts, one acrobat, no safety net: flip, swing and cannon-blast your way to a standing ovation.",
+    tech:"Canvas 2D · Web Audio", shots:["shots/big-top-bounce-1.jpg","shots/big-top-bounce-2.jpg"] },
+  { date:"2026-11-13", slug:"midnight-frequency", title:"Midnight Frequency", dim:"2D", mode:"single", genre:"Rhythm", theme:"Pirate radio",
+    structure:"Story: 6 chapters with cutscenes, 94 to 150 BPM",
+    pitch:"A pirate-radio rhythm game: keep the signal alive and win back a city where music has been banned.",
+    tech:"Canvas 2D · synthesized music", shots:["shots/midnight-frequency-2.jpg","shots/midnight-frequency-1.jpg"] },
+];
+const OWNER = "elivoronov-ctrl";
+const playUrl = g => `https://${OWNER}.github.io/${g.slug}/`;
+const repoUrl = g => `https://github.com/${OWNER}/${g.slug}`;
+const fmtDate = d => new Date(d + "T12:00:00").toLocaleDateString("en-US", {weekday:"long", month:"long", day:"numeric", year:"numeric"});
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+let filter = "all";
+try { filter = localStorage.getItem("dgf_filter") || "all"; } catch(e) {}
+
+function stats(){
+  const runs = new Set(GAMES.map(g => g.date)).size;
+  const multi = GAMES.filter(g => g.mode === "multi").length;
+  const latest = GAMES.map(g => g.date).sort().pop();
+  document.getElementById("stats").innerHTML =
+    `<div><b>${GAMES.length}</b><span>games</span></div><div><b>${runs}</b><span>daily runs</span></div>` +
+    `<div><b>${multi}</b><span>multiplayer</span></div><div><b>${latest}</b><span>latest release</span></div>`;
+}
+function card(g){
+  const tags = [g.dim, g.mode === "multi" ? "Online multiplayer" : "Single player", g.genre];
+  return `<article class="game">
+    <div class="media">
+      <img class="shot" src="${esc(g.shots[0])}" alt="${esc(g.title)} screenshot" loading="lazy">
+      ${g.shots.length > 1 ? `<div class="thumbs">${g.shots.map((s,i) => `<button type="button" class="thumb" data-src="${esc(s)}" aria-pressed="${i===0}" aria-label="Show screenshot ${i+1}"><img src="${esc(s)}" alt=""></button>`).join("")}</div>` : ""}
+    </div>
+    <div class="info">
+      <h2>${esc(g.title)}</h2>
+      <div class="tags">${tags.map((t,i) => `<span class="tag${i===1 && g.mode==="multi" ? " multi" : ""}">${esc(t)}</span>`).join("")}</div>
+      <p class="pitch">${esc(g.pitch)}</p>
+      <dl class="facts"><dt>Theme</dt><dd>${esc(g.theme)}</dd><dt>Content</dt><dd>${esc(g.structure)}</dd><dt>Built with</dt><dd>${esc(g.tech)}</dd><dt>Released</dt><dd>${esc(g.date)}</dd></dl>
+      <div class="actions"><a class="btn play" href="${playUrl(g)}" target="_blank" rel="noopener">▶ Play now</a><a class="btn src" href="${repoUrl(g)}" target="_blank" rel="noopener">Source</a></div>
+      <div class="url">${playUrl(g)}</div>
+    </div>
+  </article>`;
+}
+function render(){
+  const shown = GAMES.filter(g => filter === "all" || (filter === "multi" ? g.mode === "multi" : g.dim === filter));
+  const byDate = {};
+  shown.forEach(g => (byDate[g.date] ||= []).push(g));
+  const dates = Object.keys(byDate).sort().reverse();
+  document.getElementById("list").innerHTML = dates.length ? dates.map(d =>
+    `<section class="run"><div class="run-head"><h3 class="run-date">${fmtDate(d)}</h3><span class="run-meta">${byDate[d].length} game${byDate[d].length>1?"s":""} · ${d}</span></div><div class="games">${byDate[d].map(card).join("")}</div></section>`
+  ).join("") : `<p class="empty">No games match this filter yet.</p>`;
+  document.querySelectorAll("#filters button").forEach(b => b.setAttribute("aria-pressed", b.dataset.f === filter));
+}
+document.getElementById("filters").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  filter = b.dataset.f; try { localStorage.setItem("dgf_filter", filter); } catch(e) {}
+  render();
+});
+document.getElementById("list").addEventListener("click", e => {
+  const t = e.target.closest(".thumb"); if (!t) return;
+  const media = t.closest(".media");
+  media.querySelector(".shot").src = t.dataset.src;
+  media.querySelectorAll(".thumb").forEach(x => x.setAttribute("aria-pressed", x === t));
+});
+stats(); render();
+</script>
+
+</body>
+</html>
