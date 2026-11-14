@@ -78,6 +78,42 @@ h1 .dot{color:var(--accent)}
 .btn.src:hover{background:var(--chip)}
 .url{font-family:var(--mono);font-size:12px;color:var(--muted);word-break:break-all}
 .empty{color:var(--muted);padding:30px 0}
+.btn.fb{color:var(--muted);padding-inline:6px}
+.btn.fb:hover{color:var(--ink)}
+.head-links{display:flex;flex-wrap:wrap;gap:10px}
+.head-links a{font:600 14px var(--body);color:var(--accent);text-decoration:none}
+.head-links a:hover{text-decoration:underline}
+
+/* Feedback */
+.feedback{margin-top:56px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px;display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:28px;scroll-margin-top:16px}
+.feedback h2{font-family:var(--display);font-weight:700;font-size:30px;line-height:1.05;margin:0 0 10px;letter-spacing:-.01em}
+.feedback .intro p{margin:0 0 10px;color:var(--muted)}
+.feedback .intro ul{margin:0;padding-left:18px;color:var(--muted);font-size:14px}
+.fb-form{display:grid;gap:14px}
+.fb-kinds{display:flex;flex-wrap:wrap;gap:8px;border:0;padding:0;margin:0}
+.fb-kinds legend,.fb-form label>span:not(.pill){font-family:var(--mono);font-size:12px;color:var(--muted);display:block;margin-bottom:6px;padding:0}
+.fb-kinds label{position:relative}
+.fb-kinds input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.fb-kinds .pill{display:inline-block;font:500 14px var(--body);background:var(--chip);border:1px solid transparent;border-radius:999px;padding:8px 16px;cursor:pointer}
+.fb-kinds input:checked + .pill{background:var(--ink);color:var(--bg)}
+.fb-kinds input:focus-visible + .pill{outline:3px solid var(--accent);outline-offset:2px}
+.fb-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fb-form input[type=text],.fb-form input[type=email],.fb-form select,.fb-form textarea{width:100%;font:16px var(--body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:10px 12px}
+.fb-form textarea{min-height:130px;resize:vertical;line-height:1.5}
+.fb-form input:focus,.fb-form select:focus,.fb-form textarea:focus{outline:3px solid var(--accent);outline-offset:1px;border-color:transparent}
+.fb-form .opt{font-family:var(--body);font-size:12px;color:var(--muted);font-weight:400}
+.fb-hp{position:absolute!important;left:-9999px!important;width:1px;height:1px;overflow:hidden}
+.fb-foot{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.fb-foot button{font:600 15px var(--body);background:var(--accent);color:var(--accent-ink);border:0;border-radius:9px;padding:11px 20px;cursor:pointer;min-height:44px}
+.fb-foot button:disabled{opacity:.55;cursor:default}
+.fb-foot button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.fb-count{font-family:var(--mono);font-size:12px;color:var(--muted);margin-left:auto}
+.fb-status{font-size:14px;margin:0;min-height:1.4em}
+.fb-status.ok{color:#1d8a4e}.fb-status.err{color:#c23a3a}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .fb-status.ok{color:#5fd99a} :root:not([data-theme="light"]) .fb-status.err{color:#ff8a8a} }
+:root[data-theme="dark"] .fb-status.ok{color:#5fd99a} :root[data-theme="dark"] .fb-status.err{color:#ff8a8a}
+@media (max-width:760px){ .feedback{grid-template-columns:1fr;gap:16px;padding:18px} .fb-row{grid-template-columns:1fr} }
+
 footer{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}
 
 @media (max-width:760px){ .game{grid-template-columns:1fr} .info h2{font-size:26px} }
@@ -92,6 +128,7 @@ footer{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);color:v
     <h1>Daily Game Factory<span class="dot">.</span></h1>
     <p class="lede">Every run produces three brand-new, original browser games: a mix of 2D and 3D, of genres, and at least one online multiplayer game. Each one is a single HTML file you can play right here in your browser, on a computer or a phone.</p>
     <div class="stats" id="stats"></div>
+    <div class="head-links"><a href="#feedback">Found a bug or have a game idea? Tell us →</a></div>
   </header>
 
   <div class="filters" role="group" aria-label="Filter games" id="filters">
@@ -102,6 +139,42 @@ footer{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);color:v
   </div>
 
   <main id="list"></main>
+
+  <section class="feedback" id="feedback" aria-labelledby="fb-title">
+    <div class="intro">
+      <h2 id="fb-title">Feedback &amp; ideas</h2>
+      <p>Hit a bug? Want a game about something specific? Tell us here. New games are built every day, and your notes help decide what gets fixed and made next.</p>
+      <ul>
+        <li>Name and email are optional. Leave them blank to stay anonymous.</li>
+        <li>Add your email only if you'd like a reply. It's never shown publicly.</li>
+        <li>For bugs, say what you did, what happened, and which device or browser you used.</li>
+      </ul>
+    </div>
+    <form class="fb-form" id="fbForm" novalidate>
+      <fieldset class="fb-kinds">
+        <legend>What is it about?</legend>
+        <label><input type="radio" name="kind" value="bug" checked><span class="pill">🐞&nbsp; Bug</span></label>
+        <label><input type="radio" name="kind" value="idea"><span class="pill">💡&nbsp; Game idea</span></label>
+        <label><input type="radio" name="kind" value="other"><span class="pill">💬&nbsp; Other</span></label>
+      </fieldset>
+      <label><span>Which game? <span class="opt">(optional)</span></span>
+        <select name="game" id="fbGame"><option value="">Not about a specific game</option></select>
+      </label>
+      <label><span id="fbMsgLabel">What happened?</span>
+        <textarea name="message" id="fbMsg" maxlength="4000" required placeholder="Describe the bug: what you did, what you expected, and what happened instead."></textarea>
+      </label>
+      <div class="fb-row">
+        <label><span>Name <span class="opt">(optional)</span></span><input type="text" name="name" maxlength="80" autocomplete="nickname"></label>
+        <label><span>Email <span class="opt">(optional, only for replies)</span></span><input type="email" name="email" maxlength="200" autocomplete="email" inputmode="email"></label>
+      </div>
+      <div class="fb-hp" aria-hidden="true"><label>Leave this empty<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+      <div class="fb-foot">
+        <button type="submit" id="fbSend">Send feedback</button>
+        <span class="fb-count" id="fbCount">0 / 4000</span>
+      </div>
+      <p class="fb-status" id="fbStatus" role="status" aria-live="polite"></p>
+    </form>
+  </section>
 
   <footer>Games are free to play and open source on GitHub. High scores are saved in your own browser.</footer>
 </div>
@@ -162,7 +235,7 @@ function card(g){
       <div class="tags">${tags.map((t,i) => `<span class="tag${i===1 && g.mode==="multi" ? " multi" : ""}">${esc(t)}</span>`).join("")}</div>
       <p class="pitch">${esc(g.pitch)}</p>
       <dl class="facts"><dt>Theme</dt><dd>${esc(g.theme)}</dd><dt>Content</dt><dd>${esc(g.structure)}</dd><dt>Built with</dt><dd>${esc(g.tech)}</dd><dt>Released</dt><dd>${esc(g.date)}</dd></dl>
-      <div class="actions"><a class="btn play" href="${playUrl(g)}" target="_blank" rel="noopener">▶ Play now</a><a class="btn src" href="${repoUrl(g)}" target="_blank" rel="noopener">Source</a></div>
+      <div class="actions"><a class="btn play" href="${playUrl(g)}" target="_blank" rel="noopener">▶ Play now</a><a class="btn src" href="${repoUrl(g)}" target="_blank" rel="noopener">Source</a><a class="btn fb" href="#feedback" data-fb-game="${esc(g.slug)}">Report a bug</a></div>
       <div class="url">${playUrl(g)}</div>
     </div>
   </article>`;
@@ -189,6 +262,72 @@ document.getElementById("list").addEventListener("click", e => {
   media.querySelectorAll(".thumb").forEach(x => x.setAttribute("aria-pressed", x === t));
 });
 stats(); render();
+
+// ---------- Feedback (Supabase RPC; insert-only, nothing is readable with the public key) ----------
+const FB = {
+  url: "https://fxaudfluqfkplnjyqylv.supabase.co/rest/v1/rpc/submit_feedback",
+  key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ4YXVkZmx1cWZrcGxuanlxeWx2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM2NjczNTIsImV4cCI6MjEwOTI0MzM1Mn0.IzD6AGIz5NHnoeWGpQP28IySiugtvQL-WZZLqwNa_xI"
+};
+const fbForm = document.getElementById("fbForm"), fbMsg = document.getElementById("fbMsg"),
+      fbGame = document.getElementById("fbGame"), fbStatus = document.getElementById("fbStatus"),
+      fbSend = document.getElementById("fbSend"), fbCount = document.getElementById("fbCount");
+[...GAMES].sort((a, b) => a.title.localeCompare(b.title)).forEach(g => fbGame.add(new Option(g.title, g.slug)));
+const FB_COPY = {
+  bug:   ["What happened?", "Describe the bug: what you did, what you expected, and what happened instead."],
+  idea:  ["Your game idea", "A theme, a mechanic, a story, or a twist on one of the games here. Anything goes!"],
+  other: ["Your message", "Anything else you'd like to tell us."]
+};
+function fbKind(){ return fbForm.querySelector('input[name="kind"]:checked').value; }
+function fbSetKind(){ const [l, p] = FB_COPY[fbKind()]; document.getElementById("fbMsgLabel").textContent = l; fbMsg.placeholder = p; }
+fbForm.addEventListener("change", e => { if (e.target.name === "kind") fbSetKind(); });
+fbMsg.addEventListener("input", () => { fbCount.textContent = `${fbMsg.value.length} / 4000`; });
+function fbSay(msg, cls){ fbStatus.textContent = msg; fbStatus.className = "fb-status" + (cls ? " " + cls : ""); }
+function fbPrefill(slug){
+  if (slug && GAMES.some(g => g.slug === slug)) fbGame.value = slug;
+  fbForm.querySelector('input[value="bug"]').checked = true; fbSetKind();
+}
+document.getElementById("list").addEventListener("click", e => {
+  const a = e.target.closest("[data-fb-game]"); if (!a) return;
+  fbPrefill(a.dataset.fbGame);
+  setTimeout(() => fbMsg.focus({preventScroll:true}), 400);
+});
+// Deep links: #feedback, #feedback=<slug>, ?feedback=<slug>
+(function(){
+  const q = new URLSearchParams(location.search).get("feedback");
+  const h = location.hash.match(/^#feedback(?:=([a-z0-9-]+))?$/);
+  if (q || h) { fbPrefill(q || (h && h[1])); document.getElementById("feedback").scrollIntoView(); }
+})();
+fbForm.addEventListener("submit", async e => {
+  e.preventDefault();
+  const f = new FormData(fbForm);
+  const message = String(f.get("message") || "").trim();
+  const email = String(f.get("email") || "").trim();
+  if (f.get("website")) { fbSay("Thanks! Your feedback was sent.", "ok"); fbForm.reset(); return; } // bot trap
+  if (message.length < 5) { fbSay("Please write a little more (at least 5 characters).", "err"); fbMsg.focus(); return; }
+  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { fbSay("That email doesn't look right. Fix it or leave it blank.", "err"); fbForm.email.focus(); return; }
+  fbSend.disabled = true; fbSay("Sending…");
+  try {
+    const res = await fetch(FB.url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: FB.key, Authorization: "Bearer " + FB.key },
+      body: JSON.stringify({
+        p_kind: fbKind(), p_message: message, p_game_slug: f.get("game") || null,
+        p_name: String(f.get("name") || "").trim() || null, p_email: email || null,
+        p_page: location.href.slice(0, 300), p_user_agent: navigator.userAgent.slice(0, 300)
+      })
+    });
+    if (!res.ok) {
+      let msg = "Something went wrong. Please try again.";
+      try { const j = await res.json(); if (j && j.code === "P0001" && j.message) msg = j.message; } catch (_) {}
+      throw new Error(msg);
+    }
+    const kind = fbKind();
+    fbForm.reset(); fbSetKind(); fbCount.textContent = "0 / 4000";
+    fbSay(kind === "idea" ? "Thanks! Your idea is in the pile for upcoming games. 💡" : "Thanks! Your feedback was sent. 🙌", "ok");
+  } catch (err) {
+    fbSay(err.message && !/fetch|network/i.test(err.message) ? err.message : "Couldn't reach the server. Check your connection and try again.", "err");
+  } finally { fbSend.disabled = false; }
+});
 </script>
 
 </body>
