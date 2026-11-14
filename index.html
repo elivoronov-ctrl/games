@@ -207,8 +207,10 @@ const GAMES = [
     tech:"Canvas 2D · Supabase Realtime", shots:["shots/egg-rush-ridge-1.jpg","shots/egg-rush-ridge-2.jpg"] },
 ];
 const OWNER = "elivoronov-ctrl";
-const playUrl = g => `https://${OWNER}.github.io/${g.slug}/`;
-const repoUrl = g => `https://github.com/${OWNER}/${g.slug}`;
+// Games with home:"gallery" live as folders in this repo; older games have their own repos.
+const SITE = "https://games.getsimpleinvoice.app";
+const playUrl = g => g.home === "gallery" ? `${SITE}/${g.slug}/` : `https://${OWNER}.github.io/${g.slug}/`;
+const repoUrl = g => g.home === "gallery" ? `https://github.com/${OWNER}/games/tree/main/${g.slug}` : `https://github.com/${OWNER}/${g.slug}`;
 const fmtDate = d => new Date(d + "T12:00:00").toLocaleDateString("en-US", {weekday:"long", month:"long", day:"numeric", year:"numeric"});
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 

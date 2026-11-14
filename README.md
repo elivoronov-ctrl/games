@@ -4,7 +4,7 @@ The gallery of every game from the Daily Game Factory: three new, original brows
 
 **Live site:** https://games.getsimpleinvoice.app/
 
-Each game has its own repo and is hosted at `https://elivoronov-ctrl.github.io/<slug>/`. To add games, add entries to the `GAMES` array in `index.html` and their screenshots to `shots/`.
+New games (from 2026-11-15) live as folders in this repo, `<slug>/index.html`, served at `https://games.getsimpleinvoice.app/<slug>/`, and their `GAMES` entries carry `home: "gallery"`. The first six games have their own repos, hosted at `https://elivoronov-ctrl.github.io/<slug>/`. To add games, add entries to the `GAMES` array in `index.html` and their screenshots to `shots/`. Run instructions and tooling are in the private repo `elivoronov-ctrl/daily-game-factory`.
 
 ## Feedback
 
