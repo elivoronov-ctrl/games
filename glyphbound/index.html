@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Glyphbound</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0e2418">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
+<link rel="icon" href="data:,">
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;touch-action:none;background:#0e2418;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;
+  font-family:Georgia,"Times New Roman",serif;color:#f4ecd0}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+button{touch-action:manipulation;font-family:inherit}
+.overlay{position:fixed;inset:0;padding:calc(16px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
+  display:flex;align-items:center;justify-content:center;box-sizing:border-box;background:radial-gradient(circle,rgba(14,40,24,.75),rgba(4,12,8,.94));z-index:10}
+.hidden{display:none!important}
+.card{touch-action:pan-y;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;max-height:calc(100% - 8px);overflow:auto;
+  background:linear-gradient(#2e3a22,#18200f);border:3px solid #d9b45a;border-radius:16px;padding:18px 22px;max-width:580px;width:100%;box-sizing:border-box;text-align:center;box-shadow:0 10px 40px #000b}
+h1{margin:2px 0;font-size:clamp(36px,9vw,62px);color:#f2cf6a;text-shadow:0 0 18px #6aff9a66,3px 3px 0 #3a2a10;letter-spacing:3px}
+h2{margin:6px 0;color:#f2cf6a}
+p{margin:8px 0;line-height:1.45}
+.sub{color:#9ff0c0;font-style:italic}
+.how{text-align:left;font-size:14px;background:#0005;border-radius:10px;padding:8px 12px;margin:10px 0}
+.how b{color:#f2cf6a}
+.btn{background:linear-gradient(#f2cf6a,#c08a2a);color:#2a1a08;border:none;border-radius:10px;padding:12px 26px;font-size:19px;font-weight:bold;margin:8px 6px;cursor:pointer;box-shadow:0 4px 0 #6a4a10;min-height:48px}
+#hand{position:fixed;left:0;right:0;bottom:calc(8px + env(safe-area-inset-bottom));padding:0 calc(8px + env(safe-area-inset-right)) 0 calc(8px + env(safe-area-inset-left));display:flex;justify-content:center;align-items:flex-end;gap:6px;z-index:4;pointer-events:none}
+.gc{pointer-events:auto;width:clamp(62px,min(17vw,21vh),120px);height:clamp(90px,min(24vw,30vh),168px);border-radius:10px;border:2px solid #d9b45a;background:linear-gradient(#3e4a2a,#1e2614);color:#f4ecd0;padding:4px;box-sizing:border-box;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;font-size:clamp(9px,2.3vw,13px);text-align:center;transition:transform .12s;box-shadow:0 4px 10px #000a;position:relative;flex:0 1 auto}
+.gc:hover{transform:translateY(-10px)}
+.gc.no{opacity:.45;filter:grayscale(.6)}
+.gc .cost{position:absolute;top:-8px;left:-8px;width:26px;height:26px;border-radius:50%;background:#2ab8a0;border:2px solid #f2cf6a;font-weight:bold;font-size:15px;line-height:24px}
+.gc .ic{font-size:clamp(20px,6vw,36px);margin:6px 0 2px}
+.gc b{color:#f2cf6a;font-size:clamp(10px,2.5vw,14px)}
+.gc .k{position:absolute;bottom:2px;right:5px;opacity:.5;font-size:11px}
+.gc.atk{border-color:#ff8a5a}.gc.def{border-color:#6ad0ff}.gc.sk{border-color:#9aff7a}
+#side{position:fixed;right:calc(10px + env(safe-area-inset-right));z-index:5;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+#endB{min-height:52px;min-width:96px;border-radius:12px;border:2px solid #f2cf6a;background:#7a2a1aee;color:#fff;font-weight:bold;font-size:16px;cursor:pointer}
+#topBtns{position:fixed;top:calc(10px + env(safe-area-inset-top));right:calc(10px + env(safe-area-inset-right));z-index:5;display:flex;gap:8px}
+#topBtns button{min-width:48px;min-height:48px;border-radius:12px;border:2px solid #f2cf6a88;background:#0008;color:#f2cf6a;font-size:22px;cursor:pointer}
+.ups{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:10px}
+.ups .gc{width:120px;height:168px;font-size:13px}
+#story{z-index:11}
+#story .card{text-align:left}
+#storyT{font-size:13px;letter-spacing:3px;color:#9ff0c0;text-transform:uppercase}
+#storyP{font-size:clamp(15px,3.6vw,19px);min-height:4.5em}
+#log{position:fixed;left:50%;transform:translateX(-50%);z-index:3;font-size:clamp(13px,3.2vw,18px);font-weight:bold;color:#f2cf6a;text-shadow:2px 2px 0 #000;pointer-events:none;text-align:center;width:56%}
+</style>
+<script>
+(function(){
+  var ctxs = [], AC = window.AudioContext || window.webkitAudioContext;
+  if (AC) { var Wr = function(o){ var x = o ? new AC(o) : new AC(); ctxs.push(x); return x; }; Wr.prototype = AC.prototype; window.AudioContext = Wr; if (window.webkitAudioContext) window.webkitAudioContext = Wr; }
+  function resume(){ if (window.__canResumeAudio && !window.__canResumeAudio()) return; ctxs.forEach(function(x){ if (x.state !== 'running' && x.state !== 'closed') { try { var p = x.resume(); if (p && p.catch) p.catch(function(){}); } catch(e){} } }); }
+  ['touchend','pointerup','click','keydown'].forEach(function(ev){ addEventListener(ev, resume, true); });
+  document.addEventListener('visibilitychange', function(){ if (document.hidden) { try { window.__autoPause && window.__autoPause(); } catch(e){} } else resume(); });
+  addEventListener('pagehide', function(){ try { window.__autoPause && window.__autoPause(); } catch(e){} });
+  document.addEventListener('gesturestart', function(e){ e.preventDefault(); }, {passive:false});
+  document.addEventListener('dblclick', function(e){ e.preventDefault(); }, {passive:false});
+  document.addEventListener('touchmove', function(e){ var t = e.target; if (t && t.closest && t.closest('.card,input,textarea')) return; if (e.cancelable) e.preventDefault(); }, {passive:false});
+  window.SAFE = {t:0, r:0, b:0, l:0};
+  var probe = null;
+  function readSafe(){ if (!probe && document.body) { probe = document.createElement('div'); probe.style.cssText = 'position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)'; document.body.appendChild(probe); }
+    if (probe) { var s = getComputedStyle(probe); SAFE.t = parseFloat(s.paddingTop)||0; SAFE.r = parseFloat(s.paddingRight)||0; SAFE.b = parseFloat(s.paddingBottom)||0; SAFE.l = parseFloat(s.paddingLeft)||0; } }
+  document.addEventListener('DOMContentLoaded', readSafe); addEventListener('resize', readSafe);
+  var rt = 0; function kick(){ clearTimeout(rt); rt = setTimeout(function(){ readSafe(); dispatchEvent(new Event('resize')); }, 250); }
+  addEventListener('orientationchange', kick);
+  if (window.visualViewport) visualViewport.addEventListener('resize', function(){ if (Math.abs(visualViewport.height - innerHeight) > 1 || Math.abs(visualViewport.width - innerWidth) > 1) kick(); });
+})();
+</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="log"></div>
+<div id="hand" class="hidden"></div>
+<div id="side" class="hidden"><button id="endB">End turn ⏎</button></div>
+<div id="topBtns" class="hidden"><button id="pauseB" aria-label="Pause">⏸</button><button id="muteB" aria-label="Mute">♪</button></div>
+
+<div id="title" class="overlay"><div class="card">
+  <h1>GLYPHBOUND</h1>
+  <p class="sub">Deep in the green, a temple wakes. Its guardians speak only in glyphs.</p>
+  <div class="how">
+    Guide the explorer <b>Ixa</b> through <b>six story chapters</b> of the Temple of the Seventh Sun. Every guardian is a <b>card duel</b>.<br>
+    Each turn you get <b>3 sun energy</b> and draw 5 glyph cards. <b>Attack</b> cards deal damage, <b>Ward</b> cards give block that soaks hits this turn, <b>Skill</b> cards burn, poison, heal or draw. Watch the guardian's <b>intent</b> above its head and plan around it. Win to add a new glyph to your deck.<br>
+    <b>Play a card:</b> click / tap it, or keys 1–7 &nbsp; <b>End turn:</b> E / Enter / button<br>
+    <b>Story:</b> Space / tap to continue &nbsp; <b>Pause:</b> P / Esc &nbsp; <b>Mute:</b> M
+  </div>
+  <button class="btn" id="startB">Enter the temple</button>
+  <button class="btn hidden" id="contB">Continue chapter</button>
+  <p id="best" style="font-size:13px;opacity:.85"></p>
+</div></div>
+<div id="story" class="overlay hidden"><div class="card"><div id="storyT"></div><p id="storyP"></p><div style="text-align:right"><button class="btn" id="nextB">Continue ▸</button></div></div></div>
+<div id="reward" class="overlay hidden"><div class="card"><h2>Victory! Choose a glyph</h2><p style="font-size:13px">It joins your deck (1 / 2 / 3 or tap), or skip.</p><div class="ups" id="ups"></div><button class="btn" id="skipB" style="font-size:15px;padding:8px 18px">Skip</button></div></div>
+<div id="paused" class="overlay hidden"><div class="card"><h2>Paused</h2><p>The jungle holds its breath.</p><button class="btn" id="resumeB">Resume</button></div></div>
+<div id="over" class="overlay hidden"><div class="card"><h2 id="overT"></h2><p id="overP"></p><button class="btn" id="retryB">Retry chapter</button><button class="btn" id="againB">New journey</button></div></div>
+
+<script>
+'use strict';
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+let W = 0, H = 0, DPR = 1;
+function resize(){ DPR = Math.min(devicePixelRatio||1, 2); W = innerWidth; H = innerHeight; cv.width = W*DPR; cv.height = H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); layout(); }
+const $ = id => document.getElementById(id);
+const rand = (a,b) => a + Math.random()*(b-a);
+function load(k,d){ try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } }
+function save(k,v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+let best = load('glyphbound.best', 0);
+
+// ---------- Audio ----------
+let AC = null, master = null, muted = load('glyphbound.muted', false);
+function initAudio(){ if (AC) return; try { AC = new (window.AudioContext||window.webkitAudioContext)(); master = AC.createGain(); master.gain.value = muted?0:.5; master.connect(AC.destination); } catch(e){} }
+function tone(f,d,type='sine',v=.12,slide=0,delay=0){ if (!AC||muted) return; const t = AC.currentTime+delay, o = AC.createOscillator(), g = AC.createGain(); o.type=type; o.frequency.setValueAtTime(f,t); if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30,f+slide),t+d); g.gain.setValueAtTime(v,t); g.gain.exponentialRampToValueAtTime(.001,t+d); o.connect(g); g.connect(master); o.start(t); o.stop(t+d+.02); }
+function noise(d,v=.15,f=1200){ if (!AC||muted) return; const n = AC.sampleRate*d|0, b = AC.createBuffer(1,n,AC.sampleRate), a = b.getChannelData(0); for (let i=0;i<n;i++) a[i]=(Math.random()*2-1)*(1-i/n); const s = AC.createBufferSource(), fl = AC.createBiquadFilter(), g = AC.createGain(); s.buffer=b; fl.frequency.value=f; g.gain.value=v; s.connect(fl); fl.connect(g); g.connect(master); s.start(); }
+const SFX = {
+  card(){ tone(660,.08,'triangle',.06); }, slash(){ noise(.12,.2,3000); tone(240,.1,'sawtooth',.06,-100); },
+  block(){ tone(180,.15,'square',.07); noise(.08,.1,600); }, fire(){ noise(.35,.15,900); tone(300,.3,'sawtooth',.04,-200); },
+  heal(){ [523,659,784].forEach((f,i)=>tone(f,.25,'sine',.07,0,i*.06)); }, hurt(){ tone(150,.3,'sawtooth',.14,-60); noise(.2,.12,500); },
+  win(){ [392,494,587,784].forEach((f,i)=>tone(f,.4,'triangle',.1,0,i*.12)); }, lose(){ [392,330,262,196].forEach((f,i)=>tone(f,.5,'triangle',.1,0,i*.2)); },
+  turn(){ tone(880,.15,'sine',.05); tone(1320,.2,'sine',.04,0,.06); }, page(){ tone(1200,.04,'sine',.03); noise(.05,.04,4000); },
+  roar(){ tone(90,.7,'sawtooth',.15,-30); noise(.6,.12,400); }
+};
+let musT = 0, beat = 0;
+function music(dt){ if (!AC||muted||paused||!['battle','story'].includes(state)) return; musT -= dt; if (musT>0) return; musT = .3; const s = beat++%16;
+  const pent = [0,2,4,7,9,12], root = 196 * (chapter >= 5 ? .94 : 1);
+  if (s%4===0) tone(root/2,.4,'triangle',.06); if (s%4===2) noise(.05,.05,200); if ([0,3,6,8,11,14].includes(s)) tone(root*Math.pow(2,pent[(s*7+chapter)%6]/12)*2,.25,'sine',.03); if (s%8===7) tone(3000,.03,'sine',.015); }
+function setMute(m){ muted = m; save('glyphbound.muted',m); if (master) master.gain.value = m?0:.5; $('muteB').textContent = m?'🔇':'♪'; }
+
+// ---------- Cards ----------
+const CARDS = {
+  strike: {n:'Machete',   ic:'🗡️', c:1, t:'atk', d:'Deal 6',              fx:{dmg:6}},
+  guard:  {n:'Vine Ward', ic:'🌿', c:1, t:'def', d:'Block 5',             fx:{blk:5}},
+  torch:  {n:'Torch',     ic:'🔥', c:1, t:'atk', d:'Deal 4, Burn 3',      fx:{dmg:4, burn:3}},
+  whip:   {n:'Whip Crack',ic:'〰️', c:1, t:'atk', d:'Deal 3 twice',        fx:{dmg:3, hits:2}},
+  dart:   {n:'Poison Dart',ic:'🎯', c:1, t:'sk', d:'Poison 5',            fx:{poison:5}},
+  roll:   {n:'Dodge Roll',ic:'🌀', c:1, t:'def', d:'Block 6, draw 1',     fx:{blk:6, draw:1}},
+  shard:  {n:'Idol Shard',ic:'💎', c:0, t:'sk', d:'+2 energy. Exhaust',   fx:{energy:2}, ex:true},
+  sun:    {n:'Sun Glyph', ic:'☀️', c:2, t:'atk', d:'Deal 14',             fx:{dmg:14}},
+  stone:  {n:'Stone Glyph',ic:'🗿', c:2, t:'def', d:'Block 13',           fx:{blk:13}},
+  jade:   {n:'Jade Ward', ic:'🟢', c:1, t:'def', d:'Block 4, draw 2',     fx:{blk:4, draw:2}},
+  rally:  {n:'Fruit Rest',ic:'🥭', c:1, t:'sk', d:'Heal 6. Exhaust',      fx:{heal:6}, ex:true},
+  jaguar: {n:'Jaguar Glyph',ic:'🐆', c:1, t:'sk', d:'+2 Strength',        fx:{str:2}},
+  quake:  {n:'Quake',     ic:'💥', c:2, t:'atk', d:'Deal 8, Weaken 2',    fx:{dmg:8, weak:2}},
+  feather:{n:'Feather Glyph',ic:'🪶', c:0, t:'sk', d:'Draw 2',            fx:{draw:2}},
+  serpent:{n:'Serpent Fang',ic:'🐍', c:1, t:'atk', d:'Deal 4, Poison 3',  fx:{dmg:4, poison:3}},
+  eclipse:{n:'Eclipse',   ic:'🌑', c:3, t:'atk', d:'Deal 26',             fx:{dmg:26}},
+  bloom:  {n:'Sun Bloom', ic:'🌺', c:2, t:'sk', d:'Burn 7, Block 6',      fx:{burn:7, blk:6}}
+};
+const REWARD_POOL = ['torch','whip','dart','roll','shard','sun','stone','jade','rally','jaguar','quake','feather','serpent','eclipse','bloom'];
+const START_DECK = ['strike','strike','strike','strike','guard','guard','guard','guard','torch','roll'];
+
+// ---------- Story ----------
+const GUARD = {
+  serpent: {n:'Vine Serpent',   hp:38,  col:'#4ab85a', acc:'#c8ff6a', ai:[['atk',7],['blk',6],['atk',5,'poison',2],['atk',9]]},
+  monkey:  {n:'Stone Monkey',   hp:52,  col:'#8a8a7a', acc:'#f2cf6a', ai:[['atk',4,'hits',2],['buf',2],['atk',10],['blk',10]]},
+  croc:    {n:'Jade Crocodile', hp:70,  col:'#2aa880', acc:'#9fffe0', ai:[['blk',12],['atk',16],['atk',6,'weak',2],['atk',8,'hits',2]]},
+  bats:    {n:'Echo Bat Swarm', hp:62,  col:'#5a3a7a', acc:'#ff6ab8', ai:[['atk',3,'hits',4],['atk',4,'hits',3],['buf',3],['atk',5,'drain',5]]},
+  jaguar:  {n:'Obsidian Jaguar',hp:96,  col:'#2a2a3a', acc:'#ff9a2a', ai:[['atk',12],['buf',3],['atk',7,'hits',2],['blk',14],['atk',20]]},
+  king:    {n:'The Masked Sun King', hp:150, col:'#c88a2a', acc:'#ffe08a', ai:[['atk',12],['blk',15,'buf',2],['atk',6,'hits',3],['atk',10,'burn',4],['atk',24]], boss:true}
+};
+const CHAPTERS = [
+  {t:'Chapter I · The Overgrown Gate', bg:['#163a22','#2a5a32'], foe:'serpent', story:[
+    'The map was right. Under a curtain of roots, the stone gate of the Temple of the Seventh Sun breathes warm air into the jungle.',
+    'Ixa runs a thumb over the carved glyphs on the lintel. They shift, like ink in water, and rearrange into a single word: "PROVE."',
+    'The vines around the gate uncoil. Something long and green lifts its head, and its eyes are glyphs too.']},
+  {t:'Chapter II · The Hall of Whispers', bg:['#2a2a22','#4a4a3a'], foe:'monkey', story:[
+    'Inside, the air is cool and full of whispers. Every pillar is a monkey carved in stone, every monkey is grinning.',
+    'One of them is not carved. It drops from the ceiling with a crack like a cymbal and steals Ixa\'s hat.',
+    '"Glyph for glyph," it chatters. "Beat me, and I tell you where the water goes."']},
+  {t:'Chapter III · The Flooded Sanctum', bg:['#0e2a3a','#1a4a5a'], foe:'croc', story:[
+    'The monkey kept its word: the hall drains into a sunken sanctum lit by floating jade lanterns.',
+    'At the bottom of the stairs, a crocodile of polished jade lies across the only path. Its back is carved with a calendar.',
+    'It opens one eye. Today\'s date is circled. Apparently, Ixa is on the menu.']},
+  {t:'Chapter IV · The Bridge of Bats', bg:['#1a1028','#3a2048'], foe:'bats', story:[
+    'Beyond the sanctum, a rope bridge spans a chasm so deep the bottom has its own weather.',
+    'Halfway across, the dark starts to squeak. A thousand bats, each wearing a tiny gold mask, pour up from below.',
+    'They echo every move Ixa makes. The only way across is through.']},
+  {t:'Chapter V · The Sun Forge', bg:['#3a160e','#6a2a10'], foe:'jaguar', story:[
+    'The bridge ends in a forge where rivers of molten gold run along the floor. This is where the Sun King\'s masks were made.',
+    'A jaguar of black glass pads out of the furnace light. It is the forge\'s keeper, and it has never lost.',
+    'Ixa ties the hat on tighter. It has never met Ixa.']},
+  {t:'Chapter VI · The Heart of the Temple', bg:['#3a2a0a','#8a6a1a'], foe:'king', story:[
+    'At the top of the temple, sunlight falls through a hole in the roof onto a throne of mirrors.',
+    'The Masked Sun King has slept here for nine hundred years, holding the jungle\'s seasons in his fist. Waking him has stopped the rain.',
+    '"Little explorer," the mask booms, "the glyphs chose you. Let us see if they chose well."']}
+];
+const EPILOGUE = ['The mask cracks, and the King laughs: a warm, tired laugh. "Good. Someone else can carry the sun for a while."',
+  'He presses the last glyph into Ixa\'s palm. Outside, for the first time in weeks, it begins to rain.',
+  'The jungle drinks. The temple sleeps. And somewhere in Ixa\'s notebook, a new map begins.'];
+
+// ---------- State ----------
+let state = 'title', paused = false, chapter = 0, deck = [], chapterDeck = [], score = 0, chapterScore = 0;
+let pl, foe, drawPile, discard, hand, exhaust, energy, turn, busy = false, storyQ = [], storyCb = null;
+let parts = [], floats = [], shake = 0, flash = 0, t0 = 0, foeAnim = 0, plAnim = 0;
+const saveRun = () => save('glyphbound.run', {chapter, deck, score, hp: pl ? pl.hp : 60, max: pl ? pl.max : 60});
+
+function newJourney(){ chapter = 0; deck = START_DECK.slice(); score = 0; pl = {hp:60, max:60, blk:0, str:0, weak:0, burn:0, poison:0}; startChapter(); }
+function startChapter(){
+  chapterDeck = deck.slice(); chapterScore = score; const C = CHAPTERS[chapter];
+  saveRun(); showStory(C.t, C.story, () => startBattle());
+}
+function showStory(title, pages, cb){
+  state = 'story'; storyQ = pages.slice(); storyCb = cb; $('storyT').textContent = title; $('hand').classList.add('hidden'); $('side').classList.add('hidden');
+  $('story').classList.remove('hidden'); nextPage();
+}
+function nextPage(){
+  if (state !== 'story') return; SFX.page();
+  if (!storyQ.length){ $('story').classList.add('hidden'); const cb = storyCb; storyCb = null; cb && cb(); return; }
+  $('storyP').textContent = storyQ.shift();
+}
+function startBattle(){
+  const G = GUARD[CHAPTERS[chapter].foe];
+  foe = {...G, hp:G.hp, max:G.hp, blk:0, str:0, weak:0, burn:0, poison:0, ai:G.ai, step:0, intent:null};
+  pl.blk = 0; pl.str = 0; pl.weak = 0; pl.burn = 0; pl.poison = 0;
+  drawPile = shuffle(deck.slice()); discard = []; hand = []; exhaust = []; turn = 0;
+  state = 'battle'; busy = false; if (G.boss) SFX.roar();
+  $('hand').classList.remove('hidden'); $('side').classList.remove('hidden');
+  say(`${G.n} blocks the way!`); planIntent(); startTurn();
+}
+function shuffle(a){ for (let i=a.length-1;i>0;i--){ const j = Math.random()*(i+1)|0; [a[i],a[j]] = [a[j],a[i]]; } return a; }
+function drawCards(n){ for (let i=0;i<n;i++){ if (!drawPile.length){ if (!discard.length) return; drawPile = shuffle(discard); discard = []; } if (hand.length < 9) hand.push(drawPile.pop()); } }
+function planIntent(){ const a = foe.ai[foe.step % foe.ai.length]; foe.intent = a; foe.step++; if (foe.boss && foe.hp < foe.max/2 && Math.random() < .35) foe.intent = ['atk',8,'hits',3]; }
+function intentText(){ const a = foe.intent; if (!a) return ''; const o = parse(a); let s = '';
+  if (o.atk){ const d = Math.max(0, Math.floor((o.atk + foe.str) * (foe.weak>0 ? .75 : 1))); s += `⚔ ${d}${o.hits>1?'×'+o.hits:''} `; }
+  if (o.blk) s += `🛡 ${o.blk} `; if (o.buf) s += `▲ +${o.buf} str `; if (o.poison) s += `☠ ${o.poison} `; if (o.weak) s += `↓ weak `; if (o.burn) s += `🔥 ${o.burn} `; if (o.drain) s += `🩸 drain `; return s.trim(); }
+function parse(a){ const o = {}; for (let i=0;i<a.length;i+=2) o[a[i]] = a[i+1]; return o; }
+function startTurn(){
+  turn++; energy = 3; pl.blk = 0;
+  if (pl.burn > 0){ damage(pl, pl.burn, true); pl.burn--; } if (pl.poison > 0){ damage(pl, pl.poison, true); pl.poison--; }
+  if (pl.hp <= 0) return lose();
+  drawCards(5); renderHand(); SFX.turn();
+}
+function playCard(i){
+  if (state !== 'battle' || busy || paused) return; const id = hand[i]; if (!id) return; const C = CARDS[id];
+  if (C.c > energy){ say('Not enough sun energy'); tone(150,.1,'square',.05); return; }
+  energy -= C.c; hand.splice(i,1); (C.ex ? exhaust : discard).push(id); SFX.card();
+  const fx = C.fx; plAnim = .3;
+  if (fx.dmg){ const hits = fx.hits || 1; for (let h=0;h<hits;h++){ const d = Math.floor((fx.dmg + pl.str) * (pl.weak>0 ? .75 : 1)); setTimeout(() => { if (foe.hp > 0){ damage(foe, d); SFX.slash(); } }, h*140); } }
+  if (fx.blk){ pl.blk += fx.blk; SFX.block(); float(W*.25, H*.5, `+${fx.blk} 🛡`, '#6ad0ff'); }
+  if (fx.burn){ foe.burn += fx.burn; SFX.fire(); burst(foeX(), foeY(), '#ff8a2a', 20); }
+  if (fx.poison){ foe.poison += fx.poison; burst(foeX(), foeY(), '#9aff4a', 14); }
+  if (fx.weak){ foe.weak += fx.weak; }
+  if (fx.heal){ pl.hp = Math.min(pl.max, pl.hp + fx.heal); SFX.heal(); float(W*.25, H*.5, `+${fx.heal} ❤`, '#7aff9a'); }
+  if (fx.str){ pl.str += fx.str; float(W*.25, H*.5, `+${fx.str} STR`, '#ffb84a'); }
+  if (fx.energy){ energy += fx.energy; }
+  if (fx.draw) drawCards(fx.draw);
+  renderHand();
+  setTimeout(() => { if (foe.hp <= 0 && state === 'battle') win(); }, (fx.hits||1)*140 + 60);
+}
+function damage(t, d, pierce=false){
+  let left = d; if (!pierce){ const b = Math.min(t.blk, left); t.blk -= b; left -= b; if (b > 0) float(t === foe ? foeX() : W*.25, (t===foe?foeY():H*.5) - 30, `-${b}🛡`, '#6ad0ff'); }
+  t.hp = Math.max(0, t.hp - left);
+  if (left > 0){ float(t === foe ? foeX() : W*.25, t === foe ? foeY() : H*.5, `-${left}`, t === foe ? '#ffd45e' : '#ff5a5a'); burst(t === foe ? foeX() : W*.25, t === foe ? foeY() : H*.55, t === foe ? foe.acc : '#ff5a5a', 12); shake = Math.max(shake, t === foe ? 6 : 12); if (t === pl){ SFX.hurt(); flash = .4; } else foeAnim = .3; }
+}
+function endTurn(){
+  if (state !== 'battle' || busy || paused) return; busy = true;
+  discard.push(...hand); hand = []; renderHand();
+  // foe statuses
+  if (foe.burn > 0){ damage(foe, foe.burn, true); burst(foeX(), foeY(), '#ff8a2a', 10); foe.burn--; }
+  if (foe.poison > 0){ damage(foe, foe.poison, true); foe.poison--; }
+  if (foe.hp <= 0){ busy = false; return win(); }
+  foe.blk = 0;
+  const o = parse(foe.intent);
+  let delay = 400;
+  if (o.blk){ foe.blk += o.blk; SFX.block(); }
+  if (o.buf){ foe.str += o.buf; float(foeX(), foeY()-40, `+${o.buf} STR`, '#ff6a6a'); }
+  if (o.atk){ const hits = o.hits || 1; for (let h=0;h<hits;h++) setTimeout(() => { if (state !== 'battle') return; foeAnim = -.3; const d = Math.floor((o.atk + foe.str) * (foe.weak>0 ? .75 : 1)); damage(pl, d); if (o.drain) { foe.hp = Math.min(foe.max, foe.hp + o.drain); float(foeX(), foeY()-50, `+${o.drain}`, '#7aff9a'); } }, 300 + h*220); delay = 400 + hits*220; }
+  if (o.poison) pl.poison += o.poison; if (o.weak) pl.weak += o.weak; if (o.burn) pl.burn += o.burn;
+  if (foe.weak > 0) foe.weak--; if (pl.weak > 0) pl.weak--;
+  setTimeout(() => { busy = false; if (state !== 'battle') return; if (pl.hp <= 0) return lose(); planIntent(); startTurn(); }, delay + 200);
+}
+function win(){
+  if (state !== 'battle') return; state = 'reward'; SFX.win(); burst(foeX(), foeY(), foe.acc, 50, 380); shake = 14;
+  const gained = 300 + chapter*150 + pl.hp*5 + Math.max(0, 15 - turn)*20; score += gained;
+  $('hand').classList.add('hidden'); $('side').classList.add('hidden');
+  say(`${foe.n} is defeated! +${gained}`);
+  if (chapter >= CHAPTERS.length - 1){ setTimeout(() => showStory('Epilogue · Rain', EPILOGUE, () => finish(true)), 1200); return; }
+  const pool = shuffle(REWARD_POOL.slice()).slice(0,3); rewardChoices = pool;
+  setTimeout(() => { $('ups').innerHTML = pool.map((id,i) => cardHTML(id, i, true)).join(''); $('ups').querySelectorAll('.gc').forEach(b => b.onclick = () => takeReward(+b.dataset.i)); $('reward').classList.remove('hidden'); }, 900);
+}
+let rewardChoices = [];
+function takeReward(i){
+  if (state !== 'reward') return; if (i >= 0 && rewardChoices[i]) deck.push(rewardChoices[i]);
+  $('reward').classList.add('hidden'); pl.hp = Math.min(pl.max, pl.hp + Math.ceil(pl.max*.3)); chapter++; startChapter();
+}
+function lose(){ if (state === 'over') return; state = 'over'; SFX.lose(); $('hand').classList.add('hidden'); $('side').classList.add('hidden'); finish(false); }
+function finish(won){
+  state = 'over'; if (won) score += 3000;
+  if (score > best){ best = score; save('glyphbound.best', best); }
+  $('overT').textContent = won ? '🌧 The rain returns' : '🍂 Ixa is overwhelmed…';
+  $('overP').innerHTML = won ? `You crossed all six chapters of the Temple of the Seventh Sun.<br>Score <b>${score}</b> · deck of ${deck.length} glyphs<br>Best ${best}` : `${foe.n} wins this round in ${CHAPTERS[chapter].t}.<br>Score so far <b>${score}</b> · Best ${best}<br>Retry the chapter with the deck you had when it began.`;
+  $('retryB').classList.toggle('hidden', won); $('over').classList.remove('hidden'); $('topBtns').classList.add('hidden');
+  if (won) save('glyphbound.run', null);
+}
+function retryChapter(){ $('over').classList.add('hidden'); $('topBtns').classList.remove('hidden'); deck = chapterDeck.slice(); score = chapterScore; pl.hp = Math.max(pl.hp, Math.ceil(pl.max*.7)); startBattle(); }
+
+// ---------- UI ----------
+function cardHTML(id, i, reward){ const C = CARDS[id]; const no = !reward && C.c > energy; return `<button class="gc ${C.t} ${no?'no':''}" data-i="${i}"><span class="cost">${C.c}</span><span class="ic">${C.ic}</span><b>${C.n}</b><span>${C.d}</span><span class="k">${i+1}</span></button>`; }
+function renderHand(){ const el = $('hand'); el.innerHTML = hand.map((id,i) => cardHTML(id,i)).join(''); el.querySelectorAll('.gc').forEach(b => b.onclick = () => playCard(+b.dataset.i)); }
+let logT = 0; function say(t){ $('log').textContent = t; logT = 2.4; $('log').style.opacity = 1; }
+function float(x,y,t,c){ floats.push({x,y,t,c,life:1.1}); }
+function burst(x,y,c,n=12,sp=200){ for (let i=0;i<n;i++){ const a = Math.random()*6.28, s = rand(sp*.2,sp); parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-60,life:rand(.4,1),c,r:rand(2,5)}); } }
+function handH(){ return Math.min(168, Math.max(90, Math.min(W*.24, H*.3))) + 16 + SAFE.b; }
+function foeX(){ return W > H ? W*.68 : W*.62; }
+function foeY(){ const top = SAFE.t + 70, bot = H - handH() - 10; return top + (bot-top)*.6; }
+function layout(){ const s = $('side'); if (s) s.style.bottom = (handH() + 6) + 'px'; $('log').style.bottom = (handH() + 14) + 'px'; }
+
+// ---------- Drawing ----------
+const vines = Array.from({length:14}, (_,i) => ({x:Math.random(), len:rand(.15,.5), ph:Math.random()*6, w:rand(3,7)}));
+const motes = Array.from({length:40}, () => ({x:Math.random(), y:Math.random(), s:rand(.2,1)}));
+function drawBG(t){
+  const C = CHAPTERS[chapter] || CHAPTERS[0];
+  const g = ctx.createLinearGradient(0,0,0,H); g.addColorStop(0, C.bg[0]); g.addColorStop(1, C.bg[1]); ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+  // temple silhouette: stepped pyramid
+  ctx.fillStyle = 'rgba(0,0,0,.28)'; const cx = W*.5, base = H*.62;
+  for (let i=0;i<6;i++){ const w = W*(.9 - i*.13), h = H*.06; ctx.fillRect(cx - w/2, base - (i+1)*h, w, h); }
+  ctx.fillRect(cx - W*.05, base - H*.46, W*.1, H*.1);
+  // glowing glyphs on the steps
+  ctx.font = `${Math.max(14, W*.02)|0}px Georgia`; ctx.textAlign = 'center';
+  const glyphs = '◈⟁☉⊕✶◬⌘♁';
+  for (let i=0;i<8;i++){ const a = .25 + .25*Math.sin(t*1.5 + i); ctx.fillStyle = `rgba(160,255,190,${a})`; ctx.fillText(glyphs[i], cx - W*.32 + i*W*.09, base - H*.03 - (i%3)*H*.06); }
+  // floor
+  ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(0, base, W, H-base);
+  // vines
+  for (const v of vines){ ctx.strokeStyle = '#1a4a1a'; ctx.lineWidth = v.w; ctx.beginPath(); const x = v.x*W; ctx.moveTo(x,0); for (let y=0;y<v.len*H;y+=10) ctx.lineTo(x + Math.sin(y*.03 + t + v.ph)*8, y); ctx.stroke();
+    ctx.fillStyle = '#2a7a2a'; for (let y=20;y<v.len*H;y+=40){ ctx.beginPath(); ctx.ellipse(x + Math.sin(y*.03+t+v.ph)*8 + 8, y, 9, 4, .6, 0, 7); ctx.fill(); } }
+  // motes / fireflies
+  for (const m of motes){ const x = (m.x*W + Math.sin(t*m.s + m.y*9)*30) , y = (m.y*H + t*12*m.s) % H; ctx.fillStyle = `rgba(220,255,150,${.3+.3*Math.sin(t*3+m.x*20)})`; ctx.fillRect(x,y,2.5,2.5); }
+}
+function drawIxa(x, y, s, t){
+  ctx.save(); ctx.translate(x + plAnim*80, y); ctx.scale(s,s);
+  ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(0, 60, 40, 10, 0, 0, 7); ctx.fill();
+  const b = Math.sin(t*2)*2;
+  ctx.fillStyle = '#5a3a1a'; ctx.fillRect(-16, 20, 12, 40); ctx.fillRect(4, 20, 12, 40); // legs
+  ctx.fillStyle = '#c8a46a'; ctx.fillRect(-22, -20+b, 44, 46); // shirt
+  ctx.fillStyle = '#7a4a1a'; ctx.fillRect(-22, 12+b, 44, 6); // belt
+  ctx.fillStyle = '#8a5a2a'; ctx.beginPath(); ctx.arc(-22, 0+b, 9, 0, 7); ctx.fill(); // satchel
+  ctx.fillStyle = '#a06a3a'; ctx.beginPath(); ctx.arc(0, -36+b, 18, 0, 7); ctx.fill(); // head
+  ctx.fillStyle = '#2a1a0a'; ctx.beginPath(); ctx.arc(0, -42+b, 18, Math.PI, 0); ctx.fill(); // hair
+  ctx.fillStyle = '#d9b45a'; ctx.beginPath(); ctx.ellipse(0, -52+b, 34, 8, 0, 0, 7); ctx.fill(); ctx.fillRect(-18, -66+b, 36, 14); // hat
+  ctx.fillStyle = '#7a2a1a'; ctx.fillRect(-18, -56+b, 36, 4);
+  ctx.fillStyle = '#fff'; ctx.fillRect(4, -38+b, 5, 4);
+  ctx.strokeStyle = '#ccc'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(22, 0+b); ctx.lineTo(48, -30+b); ctx.stroke(); // machete
+  ctx.restore();
+}
+function drawFoe(x, y, s, t){
+  const F = foe; ctx.save(); ctx.translate(x + foeAnim*(foeAnim<0?-120:40), y); ctx.scale(s,s);
+  ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(0, 70, 70, 14, 0, 0, 7); ctx.fill();
+  const b = Math.sin(t*2.2)*4, k = CHAPTERS[chapter].foe;
+  ctx.shadowColor = F.acc; ctx.shadowBlur = 20;
+  if (k === 'serpent'){ ctx.strokeStyle = F.col; ctx.lineWidth = 26; ctx.lineCap = 'round'; ctx.beginPath(); for (let i=0;i<=20;i++){ const yy = 60 - i*6, xx = Math.sin(i*.5 + t*2)*30*(1-i/24); i ? ctx.lineTo(xx, yy) : ctx.moveTo(xx, yy); } ctx.stroke(); ctx.fillStyle = F.col; ctx.beginPath(); ctx.ellipse(Math.sin(10+t*2)*4, -66+b, 34, 24, 0, 0, 7); ctx.fill(); ctx.fillStyle = F.acc; ctx.font = 'bold 18px Georgia'; ctx.textAlign = 'center'; ctx.fillText('◈ ◈', 0, -64+b); ctx.strokeStyle = '#ff4a6a'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0,-46+b); ctx.lineTo(0,-30+b); ctx.lineTo(-6,-24+b); ctx.moveTo(0,-30+b); ctx.lineTo(6,-24+b); ctx.stroke(); }
+  else if (k === 'monkey'){ ctx.fillStyle = F.col; ctx.beginPath(); ctx.ellipse(0, 10+b, 46, 50, 0, 0, 7); ctx.fill(); ctx.beginPath(); ctx.arc(0, -58+b, 34, 0, 7); ctx.fill(); ctx.beginPath(); ctx.arc(-36,-62+b,14,0,7); ctx.arc(36,-62+b,14,0,7); ctx.fill(); ctx.fillStyle = '#c8c0a0'; ctx.beginPath(); ctx.ellipse(0,-50+b,22,18,0,0,7); ctx.fill(); ctx.fillStyle = F.acc; ctx.beginPath(); ctx.arc(-11,-62+b,5,0,7); ctx.arc(11,-62+b,5,0,7); ctx.fill(); ctx.strokeStyle = F.col; ctx.lineWidth = 10; ctx.beginPath(); ctx.moveTo(40,40); ctx.quadraticCurveTo(90,30+Math.sin(t*3)*20,70,-20); ctx.stroke(); ctx.fillStyle = '#d9b45a'; ctx.beginPath(); ctx.ellipse(0,-92+b,26,7,0,0,7); ctx.fill(); ctx.fillRect(-14,-108+b,28,16); }
+  else if (k === 'croc'){ ctx.fillStyle = F.col; ctx.beginPath(); ctx.ellipse(10, 30+b*.5, 90, 34, 0, 0, 7); ctx.fill(); ctx.beginPath(); ctx.moveTo(-60, 10+b*.5); ctx.lineTo(-150, 20 - Math.abs(Math.sin(t*1.5))*20); ctx.lineTo(-150, 40); ctx.lineTo(-60, 46); ctx.fill(); ctx.fillStyle = '#fff'; for (let i=0;i<6;i++){ ctx.beginPath(); ctx.moveTo(-140+i*14, 34); ctx.lineTo(-134+i*14, 26); ctx.lineTo(-128+i*14, 34); ctx.fill(); } ctx.fillStyle = F.acc; ctx.beginPath(); ctx.arc(-70, 0+b*.5, 7, 0, 7); ctx.fill(); ctx.font = '16px Georgia'; ctx.textAlign = 'center'; for (let i=0;i<4;i++) ctx.fillText('☉⊕✶◬'[i], -20+i*30, 22+b*.5); }
+  else if (k === 'bats'){ for (let i=0;i<9;i++){ const a = i*.7 + t*1.3, r = 30 + (i%3)*24, bx = Math.cos(a)*r*1.4, by = Math.sin(a*1.3)*r*.7 - 20, fl = Math.sin(t*14+i)*10; ctx.fillStyle = F.col; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx-26, by-8-fl); ctx.lineTo(bx-12, by+4); ctx.lineTo(bx, by+8); ctx.lineTo(bx+12, by+4); ctx.lineTo(bx+26, by-8-fl); ctx.closePath(); ctx.fill(); ctx.fillStyle = '#f2cf6a'; ctx.fillRect(bx-6, by-3, 12, 4); } }
+  else if (k === 'jaguar'){ ctx.fillStyle = F.col; ctx.beginPath(); ctx.ellipse(0, 20+b*.5, 80, 36, 0, 0, 7); ctx.fill(); ctx.beginPath(); ctx.arc(-80, -10+b, 32, 0, 7); ctx.fill(); ctx.beginPath(); ctx.moveTo(-100,-36+b); ctx.lineTo(-92,-56+b); ctx.lineTo(-80,-38+b); ctx.moveTo(-74,-38+b); ctx.lineTo(-62,-56+b); ctx.lineTo(-58,-34+b); ctx.fill(); for (const lx of [-50,-20,30,60]) ctx.fillRect(lx, 40, 14, 34); ctx.strokeStyle = F.col; ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(78,10); ctx.quadraticCurveTo(120,-40+Math.sin(t*2)*15,100,-70); ctx.stroke(); ctx.fillStyle = F.acc; ctx.beginPath(); ctx.ellipse(-92,-14+b,6,3,0,0,7); ctx.ellipse(-70,-14+b,6,3,0,0,7); ctx.fill(); ctx.fillStyle = '#ff9a2a55'; for (let i=0;i<6;i++){ ctx.beginPath(); ctx.arc(-40+i*22, 10+(i%2)*14, 6, 0, 7); ctx.fill(); } }
+  else { // king
+    ctx.fillStyle = '#6a2a1a'; ctx.beginPath(); ctx.moveTo(-60,70); ctx.lineTo(-40,-30); ctx.lineTo(40,-30); ctx.lineTo(60,70); ctx.fill();
+    for (let i=0;i<12;i++){ const a = i/12*6.283 + t*.3; ctx.strokeStyle = F.acc; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(Math.cos(a)*56, -70+Math.sin(a)*56+b); ctx.lineTo(Math.cos(a)*(84+Math.sin(t*3+i)*8), -70+Math.sin(a)*(84+Math.sin(t*3+i)*8)+b); ctx.stroke(); }
+    ctx.fillStyle = F.col; ctx.beginPath(); ctx.arc(0, -70+b, 52, 0, 7); ctx.fill(); ctx.fillStyle = '#ffe08a'; ctx.beginPath(); ctx.arc(0,-70+b,40,0,7); ctx.fill();
+    ctx.fillStyle = '#2a1a0a'; ctx.fillRect(-26,-84+b,18,8); ctx.fillRect(8,-84+b,18,8); ctx.fillRect(-14,-56+b,28,6);
+    ctx.fillStyle = '#3ac8a0'; ctx.beginPath(); ctx.arc(0,-112+b,8,0,7); ctx.fill();
+    if (foe.hp < foe.max/2){ ctx.strokeStyle = '#2a1a0a'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-10,-110+b); ctx.lineTo(4,-90+b); ctx.lineTo(-6,-70+b); ctx.lineTo(10,-40+b); ctx.stroke(); }
+  }
+  ctx.shadowBlur = 0; ctx.restore();
+}
+function bar(x, y, w, v, max, col, blk){
+  ctx.fillStyle = '#000a'; ctx.fillRect(x-w/2, y, w, 14); ctx.fillStyle = col; ctx.fillRect(x-w/2+2, y+2, (w-4)*v/max, 10);
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 12px Georgia'; ctx.textAlign = 'center'; ctx.fillText(`${v}/${max}`, x, y+12);
+  if (blk > 0){ ctx.fillStyle = '#2a7ad0'; ctx.beginPath(); ctx.arc(x-w/2-12, y+7, 12, 0, 7); ctx.fill(); ctx.fillStyle = '#fff'; ctx.fillText(blk, x-w/2-12, y+11); }
+}
+function statusLine(o){ let s = ''; if (o.str) s += `▲${o.str} `; if (o.weak) s += `↓${o.weak} `; if (o.burn) s += `🔥${o.burn} `; if (o.poison) s += `☠${o.poison} `; return s; }
+function draw(t, dt){
+  ctx.save(); if (shake > .3) ctx.translate(rand(-shake,shake), rand(-shake,shake));
+  drawBG(t);
+  if (foe && (state === 'battle' || state === 'reward' || state === 'over' || state === 'story' && storyCb === null)){
+    const s = Math.min(1.15, Math.max(.6, Math.min(W, H*1.2)/800));
+    const fy = foeY(), fx = foeX();
+    if (state !== 'reward' || foe.hp > 0) drawFoe(fx, fy, s, t);
+    const py = fy + 40*s, px = W > H ? W*.24 : Math.max(W*.24, 100);
+    drawIxa(px, py, s*.9, t);
+    // bars
+    const bw = Math.min(220, W*.36);
+    bar(fx, fy - 140*s, bw, foe.hp, foe.max, '#d04a4a', foe.blk);
+    const ny = fy - 140*s - 8; ctx.font = `bold ${W<500?14:18}px Georgia`; ctx.fillStyle = '#f2cf6a'; ctx.textAlign = 'center'; ctx.fillText(foe.n, fx, ny);
+    if (state === 'battle'){ const it = intentText(); ctx.font = `bold ${W<500?15:20}px Georgia`; const tw = ctx.measureText(it).width; ctx.fillStyle = '#000a'; ctx.fillRect(fx - tw/2 - 10, ny - 52, tw + 20, 28); ctx.fillStyle = '#ffb8a0'; ctx.fillText(it, fx, ny - 32); }
+    ctx.font = '14px Georgia'; ctx.fillStyle = '#fff'; ctx.fillText(statusLine(foe), fx, fy - 112*s);
+    bar(px, py + 70*s, Math.min(160, W*.3), pl.hp, pl.max, '#4ac86a', pl.blk);
+    ctx.fillStyle = '#fff'; ctx.font = '14px Georgia'; ctx.fillText(statusLine(pl), px, py + 100*s);
+  }
+  for (const p of parts){ ctx.globalAlpha = Math.min(1,p.life*2); ctx.fillStyle = p.c; ctx.fillRect(p.x-p.r/2, p.y-p.r/2, p.r, p.r); } ctx.globalAlpha = 1;
+  ctx.font = 'bold 22px Georgia'; ctx.textAlign = 'center'; for (const f of floats){ ctx.globalAlpha = Math.min(1,f.life*2); ctx.fillStyle = '#000'; ctx.fillText(f.t, f.x+2, f.y+2); ctx.fillStyle = f.c; ctx.fillText(f.t, f.x, f.y); } ctx.globalAlpha = 1;
+  ctx.restore();
+  if (flash > 0){ ctx.fillStyle = `rgba(255,40,40,${flash*.4})`; ctx.fillRect(0,0,W,H); }
+  // HUD
+  if (state !== 'title'){
+    ctx.save(); ctx.translate(SAFE.l, SAFE.t);
+    ctx.textAlign = 'left'; ctx.font = `bold ${W<500?13:16}px Georgia`; ctx.fillStyle = '#9ff0c0'; ctx.fillText(CHAPTERS[chapter].t, 12, 22);
+    ctx.fillStyle = '#f2cf6a'; ctx.fillText(`Score ${score}   Best ${best}`, 12, 42);
+    if (state === 'battle'){
+      const ex = 12, ey = H - SAFE.t - handH() - 50; ctx.fillStyle = '#000a'; ctx.beginPath(); ctx.arc(ex+28, ey, 26, 0, 7); ctx.fill(); ctx.strokeStyle = '#f2cf6a'; ctx.lineWidth = 3; ctx.stroke();
+      ctx.fillStyle = '#ffe08a'; ctx.font = 'bold 22px Georgia'; ctx.textAlign = 'center'; ctx.fillText(`${energy}`, ex+28, ey+8); ctx.font = '11px Georgia'; ctx.fillText('☀ energy', ex+28, ey+38);
+      ctx.textAlign = 'left'; ctx.font = '12px Georgia'; ctx.fillStyle = '#ddd'; ctx.fillText(`Deck ${drawPile.length} · Discard ${discard.length} · Turn ${turn}`, 12, 60);
+    }
+    ctx.restore();
+  }
+}
+
+// ---------- Input ----------
+addEventListener('keydown', e => {
+  if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
+  if (e.code === 'KeyM') setMute(!muted);
+  if (paused) return;
+  if (state === 'battle'){ const m = e.code.match(/^Digit([1-9])$/); if (m) playCard(+m[1]-1); if (e.code === 'KeyE' || e.code === 'Enter') endTurn(); }
+  else if (state === 'story' && (e.code === 'Space' || e.code === 'Enter')){ e.preventDefault(); nextPage(); }
+  else if (state === 'reward'){ const m = e.code.match(/^Digit([1-3])$/); if (m) takeReward(+m[1]-1); }
+  else if (state === 'title' && e.code === 'Enter') begin(false);
+});
+$('story').addEventListener('click', e => { if (e.target.id !== 'nextB') nextPage(); });
+$('nextB').onclick = () => nextPage();
+$('endB').onclick = () => endTurn();
+$('skipB').onclick = () => takeReward(-1);
+$('pauseB').onclick = () => togglePause(); $('muteB').onclick = () => setMute(!muted); $('resumeB').onclick = () => togglePause();
+$('startB').onclick = () => begin(false); $('contB').onclick = () => begin(true);
+$('againB').onclick = () => { $('over').classList.add('hidden'); begin(false); };
+$('retryB').onclick = () => retryChapter();
+setMute(muted);
+function togglePause(){ if (!['battle','story','reward'].includes(state)) return; paused = !paused; $('paused').classList.toggle('hidden', !paused); if (AC){ try { paused ? AC.suspend() : AC.resume(); } catch(e){} } }
+window.__canResumeAudio = () => !paused;
+function begin(cont){
+  initAudio(); $('title').classList.add('hidden'); $('topBtns').classList.remove('hidden');
+  const run = load('glyphbound.run', null);
+  if (cont && run){ chapter = run.chapter; deck = run.deck; score = run.score; pl = {hp:run.hp, max:run.max, blk:0, str:0, weak:0, burn:0, poison:0}; startChapter(); }
+  else newJourney();
+}
+{ const run = load('glyphbound.run', null); if (run && run.chapter > 0){ $('contB').classList.remove('hidden'); $('contB').textContent = `Continue: ${CHAPTERS[run.chapter].t.split(' · ')[0]}`; } }
+$('best').textContent = best ? `Best score ${best}` : 'Six chapters. One deck. Read the glyphs.';
+
+addEventListener('resize', resize); resize();
+let last = performance.now();
+function frame(now){
+  const dt = Math.min(.05, (now-last)/1000); last = now;
+  if (!paused){ t0 += dt;
+    for (const p of parts){ p.x += p.vx*dt; p.y += p.vy*dt; p.vy += 200*dt; p.life -= dt; } parts = parts.filter(p => p.life > 0);
+    for (const f of floats){ f.y -= 40*dt; f.life -= dt; } floats = floats.filter(f => f.life > 0);
+    shake *= Math.pow(.01, dt); flash = Math.max(0, flash - dt); plAnim *= Math.pow(.001, dt); foeAnim *= Math.pow(.001, dt);
+    if (logT > 0){ logT -= dt; if (logT <= 0) $('log').style.opacity = 0; }
+  }
+  music(dt); draw(t0, dt); requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+window.__autoPause = () => { if (!paused) togglePause(); };
+window.__gb = {
+  get state(){ return state; }, get chapter(){ return chapter+1; }, get score(){ return score; }, get hand(){ return hand ? hand.slice() : []; }, get energy(){ return energy; },
+  get foe(){ return foe && {n:foe.n, hp:foe.hp, max:foe.max}; }, get player(){ return pl && {hp:pl.hp, max:pl.max, blk:pl.blk}; },
+  goto(n){ initAudio(); ['title','over','story','reward'].forEach(id => $(id).classList.add('hidden')); $('topBtns').classList.remove('hidden'); if (!pl) pl = {hp:60,max:60,blk:0,str:0,weak:0,burn:0,poison:0}; if (!deck.length) deck = START_DECK.slice(); chapter = Math.max(0, Math.min(5, n-1)); startChapter(); },
+  skipStory(){ while (state === 'story') { storyQ = []; nextPage(); } },
+  play(i){ playCard(i); }, endTurn(){ endTurn(); }, win(){ if (foe){ foe.hp = 0; win(); } }, god(){ pl.max = pl.hp = 999; }
+};
+</script>
+</body>
+</html>
