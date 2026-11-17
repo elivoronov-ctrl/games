@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sporelight</title>
+<link rel="icon" href="data:,">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0b0a1a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;touch-action:none;background:#0b0a1a;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;
+  font-family:"Trebuchet MS",system-ui,-apple-system,sans-serif;color:#efe6ff}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+button{touch-action:manipulation;font-family:inherit}
+.card{touch-action:pan-y;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;max-height:calc(100% - 8px);overflow:auto}
+.overlay{position:fixed;inset:0;padding:calc(16px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
+  display:flex;align-items:center;justify-content:center;background:rgba(8,6,20,.72);z-index:20;box-sizing:border-box}
+.hidden{display:none!important}
+.panel{background:linear-gradient(160deg,#241a40,#151027);border:2px solid #6b4fb0;border-radius:18px;padding:22px 24px;max-width:520px;width:100%;box-sizing:border-box;
+  box-shadow:0 0 40px rgba(160,110,255,.35);text-align:center}
+.panel h1{margin:0 0 4px;font-size:44px;letter-spacing:2px;color:#ffe9a8;text-shadow:0 0 18px #ffb84d,0 0 4px #fff}
+.panel h2{margin:0 0 8px;font-size:26px;color:#ffe9a8}
+.panel p{line-height:1.45;margin:8px 0;color:#d9cdf5}
+.panel .sub{color:#b9a5ef;font-style:italic}
+.panel table{margin:10px auto;border-collapse:collapse;font-size:14px;text-align:left}
+.panel td{padding:3px 10px;color:#d9cdf5}.panel td:first-child{color:#ffd77a;font-weight:bold;white-space:nowrap}
+.big{background:linear-gradient(#ffcf6b,#f39a2e);color:#2a1300;border:none;border-radius:999px;padding:14px 30px;font-size:20px;font-weight:bold;margin:8px 6px 0;cursor:pointer;
+  box-shadow:0 0 18px rgba(255,190,90,.6);min-height:48px}
+.big.alt{background:linear-gradient(#a98cff,#6d4fd6);color:#fff;box-shadow:0 0 14px rgba(150,110,255,.5)}
+#shop{position:fixed;z-index:5;box-sizing:border-box;background:rgba(18,12,36,.9);border-left:2px solid #4b3786;display:flex;flex-direction:column;gap:6px;padding:10px}
+#shop h3{margin:2px 0 2px;font-size:14px;letter-spacing:1px;color:#b9a5ef;text-transform:uppercase}
+#ups{display:flex;flex-wrap:wrap;gap:6px;min-height:0}
+.up{width:48px;height:48px;border-radius:12px;border:2px solid #6b4fb0;background:#2a1f4d;color:#fff;font-size:20px;cursor:pointer;position:relative;padding:0}
+.up.can{border-color:#ffcf6b;box-shadow:0 0 10px rgba(255,200,100,.6)}
+.up:not(.can){opacity:.55}
+.g{display:flex;align-items:center;gap:10px;border-radius:12px;border:2px solid #3d2d6e;background:#211843;padding:6px 10px;cursor:pointer;min-height:52px;text-align:left;color:#efe6ff;width:100%}
+.g.can{border-color:#ffcf6b;background:#2d2155}
+.g:not(.can){opacity:.6}
+.g{flex:0 0 auto}.g .ic{width:38px;height:38px;flex:0 0 38px}.g>div{min-width:0;flex:1}.g .nm,.g .ds,.g .key{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-height:500px){.g .ds{display:none}.g{min-height:48px;padding:4px 8px}}
+.g .nm{font-weight:bold;font-size:15px}.g .ds{font-size:12px;color:#b9a5ef}
+.g .ow{margin-left:auto;font-size:22px;font-weight:bold;color:#ffe9a8;min-width:34px;text-align:right}
+.g .key{font-size:11px;color:#8f7cc7}
+.g.locked{opacity:.35;cursor:default}
+#bloom{border:2px solid #ffcf6b;background:linear-gradient(#5a2d7a,#2d1550);color:#ffe9a8;border-radius:14px;padding:10px;font-size:16px;font-weight:bold;cursor:pointer;min-height:52px}
+#bloom:not(.can){opacity:.6}
+#topBtns{position:fixed;z-index:8;display:flex;gap:8px}
+#topBtns button{min-width:46px;min-height:46px;border-radius:12px;border:2px solid #6b4fb0;background:rgba(30,20,60,.8);color:#fff;font-size:20px;cursor:pointer}
+#story .who{color:#ffcf6b;font-weight:bold;font-size:15px;margin-top:10px;text-transform:uppercase;letter-spacing:1px}
+#story .line{font-size:18px;min-height:76px}
+#storyArt{width:100%;height:140px;border-radius:12px;display:block;background:#0d0a20;position:static}
+.tiny{font-size:12px;color:#8f7cc7;margin-top:6px}
+</style>
+<script>
+/* iOS / touch hardening: audio unlock+resume, no zoom/scroll, safe-area insets, rotation resize */
+(function(){
+  var ctxs = [], AC = window.AudioContext || window.webkitAudioContext;
+  if (AC) { var Wr = function(o){ var x = o ? new AC(o) : new AC(); ctxs.push(x); return x; }; Wr.prototype = AC.prototype; window.AudioContext = Wr; if (window.webkitAudioContext) window.webkitAudioContext = Wr; }
+  function resume(){ if (window.__canResumeAudio && !window.__canResumeAudio()) return; ctxs.forEach(function(x){ if (x.state !== 'running' && x.state !== 'closed') { try { var p = x.resume(); if (p && p.catch) p.catch(function(){}); } catch(e){} } }); }
+  ['touchend','pointerup','click','keydown'].forEach(function(ev){ addEventListener(ev, resume, true); });
+  document.addEventListener('visibilitychange', function(){ if (document.hidden) { try { window.__autoPause && window.__autoPause(); } catch(e){} } else resume(); });
+  addEventListener('pagehide', function(){ try { window.__autoPause && window.__autoPause(); } catch(e){} });
+  document.addEventListener('gesturestart', function(e){ e.preventDefault(); }, {passive:false});
+  document.addEventListener('dblclick', function(e){ e.preventDefault(); }, {passive:false});
+  document.addEventListener('touchmove', function(e){ var t = e.target; if (t && t.closest && t.closest('.card,input,textarea')) return; if (e.cancelable) e.preventDefault(); }, {passive:false});
+  window.SAFE = {t:0, r:0, b:0, l:0};
+  var probe = null;
+  function readSafe(){ if (!probe && document.body) { probe = document.createElement('div'); probe.style.cssText = 'position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)'; document.body.appendChild(probe); }
+    if (probe) { var s = getComputedStyle(probe); SAFE.t = parseFloat(s.paddingTop)||0; SAFE.r = parseFloat(s.paddingRight)||0; SAFE.b = parseFloat(s.paddingBottom)||0; SAFE.l = parseFloat(s.paddingLeft)||0; } }
+  document.addEventListener('DOMContentLoaded', readSafe); addEventListener('resize', readSafe);
+  var rt = 0; function kick(){ clearTimeout(rt); rt = setTimeout(function(){ readSafe(); dispatchEvent(new Event('resize')); }, 250); }
+  addEventListener('orientationchange', kick);
+  if (window.visualViewport) visualViewport.addEventListener('resize', function(){ if (Math.abs(visualViewport.height - innerHeight) > 1 || Math.abs(visualViewport.width - innerWidth) > 1) kick(); });
+})();
+</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="shop" class="hidden">
+  <h3>Upgrades <span style="text-transform:none;color:#8f7cc7">(U)</span></h3>
+  <div id="ups"></div>
+  <h3>Growers <span style="text-transform:none;color:#8f7cc7">(1-6)</span></h3>
+  <div id="glist" class="card" style="display:flex;flex-direction:column;gap:6px;flex:1;min-height:0"></div>
+  <button id="bloom" class="hidden">🌸 Bloom the Heartcap (B)</button>
+</div>
+<div id="topBtns" class="hidden"><button id="bPause" aria-label="Pause">⏸</button><button id="bMute" aria-label="Mute">♪</button></div>
+
+<div id="title" class="overlay"><div class="panel card">
+  <h1>SPORELIGHT</h1>
+  <p class="sub">The forest is going dark. You are the last mushroom that still glows.</p>
+  <table>
+    <tr><td>Tap / Click / Space</td><td>Tap your glowing cap to shed spores</td></tr>
+    <tr><td>1 – 6 or tap a row</td><td>Grow helpers that make spores for you</td></tr>
+    <tr><td>U or ★ buttons</td><td>Buy upgrades (doubles output)</td></tr>
+    <tr><td>Tap moths</td><td>Pop Gloom Moths before they reach you</td></tr>
+    <tr><td>P / Esc · M</td><td>Pause · Mute</td></tr>
+  </table>
+  <p>Six chapters. If the <b>Gloom</b> meter fills, the forest sleeps forever. Gather enough light to bloom the Heartcap and wake the woods.</p>
+  <button class="big" id="bStart">Begin</button><button class="big alt hidden" id="bCont">Continue</button>
+  <div class="tiny" id="hiT"></div>
+</div></div>
+
+<div id="story" class="overlay hidden"><div class="panel card">
+  <canvas id="storyArt" width="480" height="140"></canvas>
+  <h2 id="stTitle"></h2>
+  <div class="who" id="stWho"></div>
+  <p class="line" id="stLine"></p>
+  <button class="big" id="bNext">Next ▸</button>
+  <div class="tiny">Space / Enter / tap to continue</div>
+</div></div>
+
+<div id="pauseO" class="overlay hidden"><div class="panel card"><h2>Paused</h2><p>The spores wait for you.</p>
+  <button class="big" id="bResume">Resume</button><button class="big alt" id="bQuit">Title</button></div></div>
+
+<div id="endO" class="overlay hidden"><div class="panel card"><h1 id="endT"></h1><p id="endP"></p><p id="endS"></p>
+  <button class="big" id="bAgain">Play again</button></div></div>
+
+<script>
+(() => {
+'use strict';
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const $ = id => document.getElementById(id);
+let W = 0, H = 0, DPR = 1, scene = {x:0,y:0,w:0,h:0}, portrait = false;
+
+// ---------- data ----------
+const GROW = [
+  {n:'Spore Puffs', d:'Little puffballs that sneeze spores', c:15, r:0.5, col:'#f2c6ff'},
+  {n:'Glow Gnats', d:'Fireflies · zap moths, ease the Gloom', c:100, r:3, col:'#fff27a'},
+  {n:'Mycelium Threads', d:'Root web that hums with light', c:1000, r:18, col:'#7ff7e1'},
+  {n:'Lantern Caps', d:'Hanging lights · push back the Gloom', c:9000, r:100, col:'#ff9d4d'},
+  {n:'Moon Toadstools', d:'Drink moonlight, exhale spores', c:80000, r:560, col:'#9fc4ff'},
+  {n:'Elder Shelf', d:'Ancient bracket fungus, very wise', c:700000, r:3200, col:'#ffd27a'},
+];
+const UPM = [10, 25, 50], UPC = [12, 70, 700];
+const CLICKUP = [{c:100,n:'Thicker Cap'},{c:4000,n:'Spore Storm'},{c:150000,n:'Star Gills'},{c:3e6,n:'Heartsong'}];
+const CH = [0, 300, 4000, 30000, 200000, 900000];
+const FINAL = 2500000;
+const MOTH_INT = [99, 99, 11, 9, 7.5, 6.5, 5.5];
+const CHAPTERS = [
+  null,
+  {t:'Chapter 1 · A Single Glow', lines:[
+    ['Narrator','Deep in the Hollowmere Wood, the great Heartcap has gone dim. One by one, the mushrooms stopped glowing.'],
+    ['Narrator','All but one. You are Mossy, a small cap with a stubborn little light.'],
+    ['Old Shelf','Ah, a glow! Tap your cap, little one. Every spore you shed is a seed of light. Grow helpers, and they will glow with you.']]},
+  {t:'Chapter 2 · The Gloom Moths', lines:[
+    ['Narrator','Something flutters at the edge of the light. Soft wings. Hungry eyes.'],
+    ['Old Shelf','Gloom Moths! They eat light. Pop them before they reach you, or they will steal your spores and feed the Gloom.'],
+    ['Old Shelf','If the Gloom fills, the forest sleeps forever. Glow Gnats will help: they zap moths and chase the dark away.']]},
+  {t:'Chapter 3 · Whispering Roots', lines:[
+    ['Narrator','Your light seeps into the soil. Pale threads stretch out, touching roots far and wide.'],
+    ['Mycelium','...we hear you... the Heartcap sleeps below... it needs light, so much light...'],
+    ['Old Shelf','Watch for golden spores drifting by. Catch one and the whole wood sings for a while.']]},
+  {t:'Chapter 4 · The Toad Ferryman', lines:[
+    ['Narrator','At the Black Pond waits a toad in a reed hat, rowing a leaf boat.'],
+    ['Toad Ferryman','Light for the far shore? Hrrm. Hang lanterns on my boat and I will carry it. But the moths follow lanterns, little cap.'],
+    ['Narrator','The moths grow bolder. Some wear bark armour now and need two taps.']]},
+  {t:'Chapter 5 · Moonfall', lines:[
+    ['Narrator','A sliver of moon slips from the sky and lands in the clearing with a soft chime.'],
+    ['Old Shelf','Moon toadstools will sprout where it fell. But listen... something huge is waking in the dark.'],
+    ['The Gloom','...little light... I see you...']]},
+  {t:'Chapter 6 · The Long Dark', lines:[
+    ['Narrator','The Gloom Mother arrives: a moth as big as a stump, wings like spilled ink.'],
+    ['Old Shelf','Keep her back! Tap her again and again. Gather enough light, then bloom the Heartcap!'],
+    ['Narrator','Collect ' + fmt(FINAL) + ' spores and press Bloom. The whole wood is counting on you.']]},
+  {t:'Epilogue · Morning in Hollowmere', lines:[
+    ['Narrator','Light pours down through the roots. The Heartcap opens, wide as the sky, and the Gloom melts like frost.'],
+    ['Old Shelf','You did it, little one. Every cap in the wood is glowing again.'],
+    ['Narrator','And the moths? Without the Gloom they are just moths, dancing around a very bright mushroom.']]},
+];
+
+// ---------- state ----------
+let state = 'title'; // title | play | story | paused | over | won
+let G = {};
+function fresh() {
+  return { spores:0, total:0, own:[0,0,0,0,0,0], ups:{}, cups:0, ch:0, gloom:0, t:0, mothT:6, zapT:3, goldT:35, motherT:12,
+    frenzy:0, frenzyMul:1, popped:0, bloomed:false };
+}
+let moths = [], parts = [], floats = [], golds = [], zaps = [], deco = [], shake = 0, capPulse = 0, storyCh = 0, storyIdx = 0, afterStory = null;
+let hi = {score:0, best:0};
+try { hi = Object.assign(hi, JSON.parse(localStorage.getItem('sporelight-hi') || '{}')); } catch (e) {}
+function saveHi() { try { localStorage.setItem('sporelight-hi', JSON.stringify(hi)); } catch (e) {} }
+function saveGame() { if (state === 'over' || state === 'won' || state === 'title') return; try { localStorage.setItem('sporelight-save', JSON.stringify(G)); } catch (e) {} }
+function loadGame() { try { const s = JSON.parse(localStorage.getItem('sporelight-save') || 'null'); return s && s.own ? s : null; } catch (e) { return null; } }
+function clearSave() { try { localStorage.removeItem('sporelight-save'); } catch (e) {} }
+
+function fmt(n) {
+  n = Math.floor(n);
+  if (n < 1000) return '' + n;
+  const u = ['K','M','B','T']; let i = -1;
+  while (n >= 1000 && i < 3) { n /= 1000; i++; }
+  return (n >= 100 ? n.toFixed(0) : n >= 10 ? n.toFixed(1) : n.toFixed(2)) + u[i];
+}
+const rateStr = r => r < 10 ? r.toFixed(1) : fmt(r);
+const gMult = i => { let m = 1; for (let k = 0; k < 3; k++) if (G.ups[i + '_' + k]) m *= 2; return m; };
+const sps = () => { let s = 0; for (let i = 0; i < 6; i++) s += G.own[i] * GROW[i].r * gMult(i); return s * G.frenzyMul; };
+const clickVal = () => (1 * Math.pow(2, G.cups) + 0.03 * sps()) * (G.frenzy > 0 ? 7 : 1);
+const cost = i => Math.ceil(GROW[i].c * Math.pow(1.13, G.own[i]));
+const unlocked = i => G.ch >= Math.max(1, i);
+function upgradeList() {
+  const L = [];
+  if (G.cups < CLICKUP.length && G.total >= CLICKUP[G.cups].c / 2) L.push({k:'c', c:CLICKUP[G.cups].c, n:CLICKUP[G.cups].n + ': taps ×2', ic:'👆'});
+  for (let i = 0; i < 6; i++) for (let k = 0; k < 3; k++) {
+    if (!G.ups[i + '_' + k] && G.own[i] >= UPM[k]) { L.push({k:i + '_' + k, i, c:GROW[i].c * UPC[k], n:GROW[i].n + ' ×2', ic:['★','✦','✷'][k]}); break; }
+  }
+  return L;
+}
+
+// ---------- audio ----------
+let AC = null, master = null, muted = false, padNodes = null;
+function initAudio() {
+  if (AC) return;
+  try {
+    AC = new (window.AudioContext || window.webkitAudioContext)();
+    master = AC.createGain(); master.gain.value = muted ? 0 : 0.5; master.connect(AC.destination);
+    startPad();
+  } catch (e) { AC = null; }
+}
+function tone(f, d, type, v, when, slide) {
+  if (!AC) return; const t = AC.currentTime + (when || 0);
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = type || 'sine'; o.frequency.setValueAtTime(f, t); if (slide) o.frequency.exponentialRampToValueAtTime(slide, t + d);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v || 0.2, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t + d + 0.05);
+}
+function noise(d, v, fq) {
+  if (!AC) return; const t = AC.currentTime, n = AC.sampleRate * d, b = AC.createBuffer(1, n, AC.sampleRate), a = b.getChannelData(0);
+  for (let i = 0; i < n; i++) a[i] = (Math.random() * 2 - 1) * (1 - i / n);
+  const s = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain(); s.buffer = b; f.type = 'lowpass'; f.frequency.value = fq || 800; g.gain.value = v || 0.2;
+  s.connect(f); f.connect(g); g.connect(master); s.start(t);
+}
+const PENTA = [0, 2, 4, 7, 9, 12, 14, 16];
+const sfx = {
+  tap() { tone(523 * Math.pow(2, PENTA[(Math.random() * 8) | 0] / 12), 0.25, 'triangle', 0.12); },
+  buy() { tone(660, 0.12, 'sine', 0.15); tone(990, 0.2, 'sine', 0.12, 0.07); },
+  up() { [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.25, 'triangle', 0.12, i * 0.06)); },
+  pop() { tone(900, 0.12, 'square', 0.06, 0, 300); noise(0.08, 0.12, 2000); },
+  zap() { tone(1400, 0.1, 'sawtooth', 0.04, 0, 600); },
+  hit() { tone(110, 0.4, 'sawtooth', 0.15, 0, 50); noise(0.3, 0.2, 400); },
+  gold() { [784, 988, 1175, 1568].forEach((f, i) => tone(f, 0.4, 'sine', 0.1, i * 0.05)); },
+  chapter() { [392, 523, 659, 784, 1046].forEach((f, i) => tone(f, 0.6, 'triangle', 0.1, i * 0.12)); },
+  lose() { [392, 330, 262, 196].forEach((f, i) => tone(f, 0.6, 'sawtooth', 0.08, i * 0.25)); },
+  win() { [523, 659, 784, 1046, 1318, 1568].forEach((f, i) => tone(f, 0.9, 'triangle', 0.1, i * 0.14)); },
+};
+function startPad() {
+  if (!AC) return;
+  const g = AC.createGain(); g.gain.value = 0.035; const f = AC.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 600;
+  f.connect(g); g.connect(master);
+  [130.8, 196, 261.6, 329.6].forEach((fr, i) => { const o = AC.createOscillator(); o.type = i % 2 ? 'triangle' : 'sine'; o.frequency.value = fr; o.detune.value = (i - 1.5) * 4; o.connect(f); o.start(); });
+  const lfo = AC.createOscillator(), lg = AC.createGain(); lfo.frequency.value = 0.07; lg.gain.value = 250; lfo.connect(lg); lg.connect(f.frequency); lfo.start();
+  padNodes = g;
+}
+function setMute(m) { muted = m; if (master) master.gain.value = m ? 0 : 0.5; $('bMute').textContent = m ? '🔇' : '♪'; }
+
+// ---------- layout ----------
+function resize() {
+  DPR = Math.min(window.devicePixelRatio || 1, 2); W = innerWidth; H = innerHeight;
+  cv.width = W * DPR; cv.height = H * DPR; ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  portrait = H > W * 1.05 || W < 640;
+  const sh = $('shop'), tb = $('topBtns');
+  if (sh.classList.contains('hidden')) { scene = {x:0, y:0, w:W, h:H}; buildDeco(); return; }
+  if (portrait) {
+    const ph = Math.round(Math.min(H * 0.44, 420));
+    Object.assign(sh.style, {left:'0', right:'0', bottom:'0', top:'auto', width:'auto', height:(ph + SAFE.b) + 'px', borderLeft:'none', borderTop:'2px solid #4b3786',
+      paddingBottom:(8 + SAFE.b) + 'px', paddingLeft:(10 + SAFE.l) + 'px', paddingRight:(10 + SAFE.r) + 'px', paddingTop:'8px'});
+    scene = {x:0, y:0, w:W, h:H - ph - SAFE.b};
+    Object.assign(tb.style, {top:(8 + SAFE.t) + 'px', right:(8 + SAFE.r) + 'px'});
+  } else {
+    const pw = Math.round(Math.min(360, Math.max(270, W * 0.34)));
+    Object.assign(sh.style, {top:'0', bottom:'0', right:'0', left:'auto', width:(pw + SAFE.r) + 'px', height:'auto', borderTop:'none', borderLeft:'2px solid #4b3786',
+      paddingTop:(10 + SAFE.t) + 'px', paddingRight:(10 + SAFE.r) + 'px', paddingBottom:(10 + SAFE.b) + 'px', paddingLeft:'10px'});
+    scene = {x:0, y:0, w:W - pw - SAFE.r, h:H};
+    Object.assign(tb.style, {top:(8 + SAFE.t) + 'px', right:(pw + SAFE.r + 10) + 'px'});
+  }
+  buildDeco();
+}
+addEventListener('resize', resize);
+function capPos() { return {x:scene.x + scene.w / 2, y:scene.y + scene.h * 0.6, r:Math.max(46, Math.min(scene.w, scene.h) * 0.17)}; }
+function buildDeco() {
+  deco = []; let s = 7;
+  const rnd = () => (s = (s * 9301 + 49297) % 233280) / 233280;
+  for (let i = 0; i < 60; i++) deco.push({x:rnd(), y:rnd(), s:rnd(), h:rnd(), k:rnd()});
+}
+
+// ---------- shop DOM ----------
+const glist = $('glist'), upsEl = $('ups'), rows = [];
+GROW.forEach((g, i) => {
+  const b = document.createElement('button'); b.className = 'g';
+  b.innerHTML = `<canvas class="ic" width="76" height="76" style="position:static;width:38px;height:38px"></canvas><div><div class="nm"></div><div class="ds"></div><div class="key"></div></div><div class="ow">0</div>`;
+  b.addEventListener('click', () => buy(i));
+  glist.appendChild(b); rows.push(b);
+  drawIcon(b.querySelector('canvas').getContext('2d'), i);
+});
+function drawIcon(c, i) {
+  c.save(); c.scale(2, 2); const col = GROW[i].col;
+  const gr = c.createRadialGradient(19, 19, 2, 19, 19, 19); gr.addColorStop(0, col); gr.addColorStop(1, 'rgba(0,0,0,0)');
+  c.fillStyle = gr; c.fillRect(0, 0, 38, 38);
+  c.fillStyle = '#efe0c8'; c.fillRect(16, 19, 6, 12);
+  c.fillStyle = col; c.beginPath(); c.ellipse(19, 19, 12, 8, 0, Math.PI, 0); c.fill();
+  c.fillStyle = '#fff'; c.globalAlpha = 0.7; [[14, 15], [22, 14], [19, 12]].forEach(([x, y]) => { c.beginPath(); c.arc(x, y, 1.6, 0, 7); c.fill(); });
+  c.restore();
+}
+let lastShopSig = '';
+function updateShop() {
+  for (let i = 0; i < 6; i++) {
+    const b = rows[i], u = unlocked(i), vis = u || (i > 0 && unlocked(i - 1));
+    b.classList.toggle('hidden', !vis);
+    b.classList.toggle('locked', !u);
+    if (!u) { b.querySelector('.nm').textContent = '???'; b.querySelector('.ds').textContent = 'Unlocks in Chapter ' + Math.max(1, i); b.querySelector('.key').textContent = ''; b.querySelector('.ow').textContent = ''; continue; }
+    const c = cost(i);
+    b.classList.toggle('can', G.spores >= c);
+    b.querySelector('.nm').textContent = GROW[i].n;
+    b.querySelector('.ds').textContent = GROW[i].d;
+    b.querySelector('.key').textContent = `[${i + 1}] cost ${fmt(c)} · +${rateStr(GROW[i].r * gMult(i))}/s each`;
+    b.querySelector('.ow').textContent = G.own[i];
+  }
+  const L = upgradeList(); const sig = L.map(u => u.k).join(',');
+  if (sig !== lastShopSig) {
+    lastShopSig = sig; upsEl.innerHTML = '';
+    if (!L.length) upsEl.innerHTML = '<span style="font-size:12px;color:#8f7cc7">Own 10 of a grower to unlock its upgrade.</span>';
+    L.forEach(u => { const b = document.createElement('button'); b.className = 'up'; b.textContent = u.ic; b.title = u.n; b.dataset.k = u.k;
+      b.innerHTML = u.ic + `<span style="position:absolute;bottom:1px;left:0;right:0;font-size:9px">${fmt(u.c)}</span>`;
+      b.addEventListener('click', () => buyUp(u.k)); upsEl.appendChild(b); });
+  }
+  [...upsEl.querySelectorAll('.up')].forEach(b => { const u = L.find(x => x.k === b.dataset.k); if (u) b.classList.toggle('can', G.spores >= u.c); });
+  const bl = $('bloom'); bl.classList.toggle('hidden', G.ch < 6);
+  bl.classList.toggle('can', G.spores >= FINAL);
+  bl.textContent = `🌸 Bloom the Heartcap (B) · ${fmt(Math.min(G.spores, FINAL))}/${fmt(FINAL)}`;
+}
+function buy(i) {
+  if (state !== 'play' || !unlocked(i)) return;
+  const c = cost(i); if (G.spores < c) { tone(180, 0.1, 'square', 0.04); return; }
+  G.spores -= c; G.own[i]++; sfx.buy();
+  const p = capPos(); burst(p.x + (Math.random() - .5) * p.r * 3, p.y + p.r * 0.6, GROW[i].col, 14);
+}
+function buyUp(k) {
+  if (state !== 'play') return;
+  const u = upgradeList().find(x => x.k === k); if (!u) return;
+  if (G.spores < u.c) { tone(180, 0.1, 'square', 0.04); return; }
+  G.spores -= u.c; if (k === 'c') G.cups++; else G.ups[k] = 1; sfx.up(); lastShopSig = '';
+  const p = capPos(); burst(p.x, p.y - p.r, '#ffe9a8', 30); floatTxt(p.x, p.y - p.r * 1.6, u.n, '#ffe9a8', 20);
+}
+function buyCheapestUp() { const L = upgradeList().filter(u => G.spores >= u.c).sort((a, b) => a.c - b.c); if (L[0]) buyUp(L[0].k); }
+$('bloom').addEventListener('click', bloom);
+function bloom() {
+  if (state !== 'play' || G.ch < 6 || G.spores < FINAL) return;
+  G.spores -= FINAL; G.bloomed = true; sfx.win(); shake = 14;
+  const p = capPos(); for (let i = 0; i < 6; i++) setTimeout(() => burst(p.x, p.y - p.r, ['#ffe9a8', '#ff9df2', '#9ff7ff'][i % 3], 40), i * 120);
+  moths.forEach(m => burst(m.x, m.y, '#bba', 10)); moths = [];
+  setTimeout(() => showStory(7, () => endGame(true)), 900);
+}
+
+// ---------- gameplay ----------
+function burst(x, y, col, n) { for (let i = 0; i < n && parts.length < 400; i++) { const a = Math.random() * 6.28, s = 40 + Math.random() * 180; parts.push({x, y, vx:Math.cos(a) * s, vy:Math.sin(a) * s - 60, l:0.6 + Math.random() * 0.6, m:1.2, c:col, r:1.5 + Math.random() * 3}); } }
+function floatTxt(x, y, t, c, s) { floats.push({x, y, t, c:c || '#fff', s:s || 18, l:1.1}); if (floats.length > 40) floats.shift(); }
+function tapCap(x, y) {
+  const v = clickVal(); G.spores += v; G.total += v; capPulse = 1; sfx.tap();
+  const p = capPos(); x = x == null ? p.x + (Math.random() - .5) * p.r : x; y = y == null ? p.y - p.r * 0.5 : y;
+  floatTxt(x, y - 10, '+' + fmt(v), G.frenzy > 0 ? '#ffd24d' : '#f6e6ff', 20);
+  for (let i = 0; i < 6; i++) parts.push({x, y, vx:(Math.random() - .5) * 160, vy:-80 - Math.random() * 120, l:1, m:1, c:G.frenzy > 0 ? '#ffd24d' : '#f2c6ff', r:2 + Math.random() * 2});
+}
+function spawnMoth(mother) {
+  const p = capPos(), side = Math.random() * 4 | 0; let x, y;
+  const s = scene;
+  if (side === 0) { x = s.x - 30; y = s.y + Math.random() * s.h * 0.7; }
+  else if (side === 1) { x = s.x + s.w + 30; y = s.y + Math.random() * s.h * 0.7; }
+  else { x = s.x + Math.random() * s.w; y = s.y - 30; }
+  const dist = Math.hypot(p.x - x, p.y - y);
+  const time = mother ? 32 : (9.5 - G.ch * 0.4) * (0.85 + Math.random() * 0.3);
+  const hp = mother ? 30 : (G.ch >= 4 && Math.random() < 0.35 ? 2 : 1);
+  moths.push({x, y, sp:dist / time, hp, max:hp, mother:!!mother, ph:Math.random() * 6, wob:Math.random() * 6, r:mother ? 46 : 16, flash:0});
+}
+function hitMoth(m, auto) {
+  m.hp--; m.flash = 0.15; shake = Math.max(shake, m.mother ? 4 : 2);
+  if (m.hp <= 0) {
+    moths.splice(moths.indexOf(m), 1); G.popped++; sfx.pop();
+    const rew = (m.mother ? 60 : 5) * sps() + (m.mother ? 500 : 10) * Math.pow(2, G.cups);
+    G.spores += rew; G.total += rew; floatTxt(m.x, m.y, '+' + fmt(rew), '#c7ffb0', m.mother ? 30 : 18);
+    burst(m.x, m.y, m.mother ? '#b18cff' : '#8d7fb8', m.mother ? 60 : 16);
+    if (m.mother) { G.gloom = Math.max(0, G.gloom - 40); floatTxt(m.x, m.y - 40, 'Gloom Mother driven off!', '#ffe9a8', 24); shake = 12; }
+  } else { sfx.zap(); burst(m.x, m.y, '#ccc', 5); }
+}
+function update(dt) {
+  G.t += dt; capPulse = Math.max(0, capPulse - dt * 4); shake = Math.max(0, shake - dt * 30);
+  if (G.frenzy > 0) { G.frenzy -= dt; if (G.frenzy <= 0) G.frenzyMul = 1; }
+  const s = sps() * dt; G.spores += s; G.total += s;
+  // chapters
+  const want = CH.filter(c => G.total >= c).length;
+  if (want > G.ch) { G.ch = want; sfx.chapter(); showStory(G.ch); return; }
+  const p = capPos();
+  // moths
+  if (G.ch >= 2 && !G.bloomed) {
+    G.mothT -= dt; if (G.mothT <= 0) { G.mothT = MOTH_INT[G.ch] * (0.7 + Math.random() * 0.6); spawnMoth(false); if (G.ch >= 5 && Math.random() < 0.3) spawnMoth(false); }
+    if (G.ch >= 6) { G.motherT -= dt; if (G.motherT <= 0 && !moths.some(m => m.mother)) { G.motherT = 70; spawnMoth(true); floatTxt(p.x, scene.y + 80, 'The Gloom Mother approaches!', '#ff9df2', 26); sfx.hit(); } }
+    const gn = G.own[1];
+    if (gn > 0 && moths.length) { G.zapT -= dt; if (G.zapT <= 0) { G.zapT = Math.max(1.0, 10 / (1 + gn * 0.08)); const m = moths.reduce((a, b) => Math.hypot(a.x - p.x, a.y - p.y) < Math.hypot(b.x - p.x, b.y - p.y) ? a : b); zaps.push({x1:p.x + (Math.random() - .5) * p.r * 2, y1:p.y - p.r * 1.3, x2:m.x, y2:m.y, l:0.2}); hitMoth(m, true); } }
+  }
+  for (let i = moths.length - 1; i >= 0; i--) {
+    const m = moths[i]; m.ph += dt * (m.mother ? 6 : 14); m.wob += dt * 2; m.flash = Math.max(0, m.flash - dt);
+    const dx = p.x - m.x, dy = (p.y - p.r * 0.5) - m.y, d = Math.hypot(dx, dy);
+    if (d < p.r * 0.8) {
+      moths.splice(i, 1);
+      const steal = Math.min(G.spores * (m.mother ? 0.35 : 0.1), 1e12); G.spores -= steal;
+      G.gloom += m.mother ? 50 : 14; shake = m.mother ? 20 : 9; sfx.hit();
+      floatTxt(p.x, p.y - p.r * 1.4, steal > 1 ? '-' + fmt(steal) : 'Gloom!', '#ff6b8b', 22); burst(m.x, m.y, '#3d2a5c', 20);
+      continue;
+    }
+    m.x += dx / d * m.sp * dt + Math.cos(m.wob * 2) * 20 * dt; m.y += dy / d * m.sp * dt + Math.sin(m.wob * 3) * 30 * dt;
+  }
+  const decay = Math.min(7, 1.0 + G.own[1] * 0.03 + G.own[3] * 0.12);
+  G.gloom = Math.max(0, G.gloom - decay * dt);
+  if (G.gloom >= 100) { endGame(false); return; }
+  // golden spores
+  if (G.ch >= 3) { G.goldT -= dt; if (G.goldT <= 0) { G.goldT = 40 + Math.random() * 30; golds.push({x:scene.x + 40 + Math.random() * (scene.w - 80), y:scene.y + scene.h + 20, vy:-(scene.h / 11), l:12, ph:0}); } }
+  for (let i = golds.length - 1; i >= 0; i--) { const g = golds[i]; g.y += g.vy * dt; g.x += Math.sin(g.ph += dt * 2) * 30 * dt; g.l -= dt; if (g.l <= 0) golds.splice(i, 1); }
+  for (let i = parts.length - 1; i >= 0; i--) { const q = parts[i]; q.x += q.vx * dt; q.y += q.vy * dt; q.vy += 200 * dt; q.vx *= 0.98; q.l -= dt; if (q.l <= 0) parts.splice(i, 1); }
+  for (let i = floats.length - 1; i >= 0; i--) { const f = floats[i]; f.y -= 40 * dt; f.l -= dt; if (f.l <= 0) floats.splice(i, 1); }
+  for (let i = zaps.length - 1; i >= 0; i--) { zaps[i].l -= dt; if (zaps[i].l <= 0) zaps.splice(i, 1); }
+}
+function catchGold(g) {
+  golds.splice(golds.indexOf(g), 1); sfx.gold(); burst(g.x, g.y, '#ffd24d', 40); shake = 6;
+  if (Math.random() < 0.5) { const r = Math.max(50, sps() * 45 + clickVal() * 30); G.spores += r; G.total += r; floatTxt(g.x, g.y, 'Golden harvest! +' + fmt(r), '#ffd24d', 24); }
+  else { G.frenzy = 12; G.frenzyMul = 3; floatTxt(g.x, g.y, 'Spore Frenzy! ×3 for 12s', '#ffd24d', 24); }
+}
+
+// ---------- drawing ----------
+function draw(now) {
+  const T = now / 1000;
+  ctx.save();
+  if (shake > 0) ctx.translate((Math.random() - .5) * shake, (Math.random() - .5) * shake);
+  const s = scene, p = capPos(), ch = G.ch || 1, light = Math.min(1, (G.total || 0) / FINAL * 1.4 + 0.15) * (1 - (G.gloom || 0) / 160);
+  // sky
+  const sky = ctx.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, G.bloomed ? '#ffb877' : `hsl(${255 - ch * 4},${40 + light * 20}%,${6 + light * 8}%)`);
+  sky.addColorStop(1, G.bloomed ? '#ffe6b0' : `hsl(${280 - ch * 6},45%,${10 + light * 10}%)`);
+  ctx.fillStyle = sky; ctx.fillRect(-20, -20, W + 40, H + 40);
+  // stars + moon
+  ctx.fillStyle = '#fff';
+  for (let i = 0; i < 40; i++) { const d = deco[i]; ctx.globalAlpha = 0.3 + 0.5 * Math.abs(Math.sin(T + d.k * 9)); ctx.fillRect(s.x + d.x * s.w, s.y + d.y * s.h * 0.4, 1.6, 1.6); }
+  ctx.globalAlpha = 1;
+  if (ch >= 5 || G.bloomed) { ctx.fillStyle = '#e8eeff'; ctx.shadowColor = '#bcd'; ctx.shadowBlur = 30; ctx.beginPath(); ctx.arc(s.x + s.w * 0.82, s.y + s.h * 0.14, 22, 0, 7); ctx.fill(); ctx.shadowBlur = 0; }
+  // far trees
+  for (let layer = 0; layer < 3; layer++) {
+    ctx.fillStyle = ['#140f2a', '#1b1438', '#221a45'][layer];
+    for (let i = 0; i < 9; i++) { const d = deco[i + layer * 9 + 10]; const x = s.x + ((d.x + layer * 0.13) % 1) * s.w, w = 14 + d.s * 30 + layer * 8; ctx.fillRect(x - w / 2, s.y, w, s.h * (0.82 + layer * 0.03)); }
+  }
+  // ground
+  const gy = p.y + p.r * 0.55;
+  const gg = ctx.createLinearGradient(0, gy, 0, s.y + s.h); gg.addColorStop(0, '#2a2050'); gg.addColorStop(1, '#120d24');
+  ctx.fillStyle = gg; ctx.beginPath(); ctx.moveTo(s.x, gy + 20); ctx.quadraticCurveTo(p.x, gy - 30, s.x + s.w, gy + 20); ctx.lineTo(s.x + s.w, s.y + s.h); ctx.lineTo(s.x, s.y + s.h); ctx.fill();
+  // mycelium threads
+  if (G.own[2] > 0) {
+    ctx.strokeStyle = '#7ff7e1'; ctx.lineWidth = 1.5;
+    const n = Math.min(24, 3 + G.own[2]);
+    for (let i = 0; i < n; i++) { const d = deco[i]; ctx.globalAlpha = 0.25 + 0.3 * Math.abs(Math.sin(T * 1.5 + i)); ctx.beginPath(); ctx.moveTo(p.x, gy + 6); const ex = s.x + d.x * s.w, ey = gy + 15 + d.y * (s.y + s.h - gy - 15); ctx.quadraticCurveTo((p.x + ex) / 2 + (d.s - .5) * 80, ey - 10, ex, ey); ctx.stroke(); }
+    ctx.globalAlpha = 1;
+  }
+  // light halo
+  const halo = ctx.createRadialGradient(p.x, p.y - p.r * 0.4, 5, p.x, p.y - p.r * 0.4, p.r * (3 + light * 3));
+  halo.addColorStop(0, `rgba(255,220,150,${0.25 + light * 0.25})`); halo.addColorStop(1, 'rgba(255,200,150,0)');
+  ctx.fillStyle = halo; ctx.fillRect(s.x, s.y, s.w, s.h);
+  // elder shelf on left tree
+  if (G.own[5] > 0) { const tx = s.x + s.w * 0.12; ctx.fillStyle = '#3a2a1a'; ctx.fillRect(tx - 18, s.y, 36, gy - s.y + 10); for (let i = 0; i < Math.min(6, G.own[5]); i++) { ctx.fillStyle = i % 2 ? '#ffd27a' : '#e0a94e'; ctx.beginPath(); ctx.ellipse(tx + 22, gy - 40 - i * 26, 26, 9, 0, Math.PI, 0); ctx.fill(); } }
+  // small mushrooms (puffs, moons)
+  const np = Math.min(30, G.own[0]), nm = Math.min(14, G.own[4]);
+  for (let i = 0; i < np + nm; i++) {
+    const d = deco[(i * 7) % 60], moon = i >= np;
+    const side = i % 2 ? 1 : -1, x = p.x + side * (p.r * 1.3 + d.x * s.w * 0.38), y = gy + 8 + d.y * Math.max(10, (s.y + s.h - gy) * 0.6);
+    const sz = (moon ? 12 : 7) + d.s * 6, bob = Math.sin(T * 2 + i) * 1.5;
+    ctx.fillStyle = '#e9dcc5'; ctx.fillRect(x - sz * 0.18, y - sz * 0.9 + bob, sz * 0.36, sz * 0.9);
+    ctx.fillStyle = moon ? '#9fc4ff' : '#f2c6ff'; ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 10;
+    ctx.beginPath(); ctx.ellipse(x, y - sz * 0.85 + bob, sz * 0.7, sz * 0.5, 0, Math.PI, 0); ctx.fill(); ctx.shadowBlur = 0;
+  }
+  // lantern caps hanging
+  for (let i = 0; i < Math.min(10, G.own[3]); i++) {
+    const d = deco[i + 30], x = s.x + s.w * (0.08 + 0.84 * ((i * 0.37 + d.x * 0.1) % 1)), y = s.y + 40 + d.y * s.h * 0.25 + Math.sin(T + i) * 4;
+    ctx.strokeStyle = '#4a3a6a'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x, s.y); ctx.lineTo(x, y); ctx.stroke();
+    ctx.fillStyle = '#ff9d4d'; ctx.shadowColor = '#ff9d4d'; ctx.shadowBlur = 18; ctx.beginPath(); ctx.ellipse(x, y + 8, 9, 11, 0, 0, 7); ctx.fill(); ctx.shadowBlur = 0;
+    ctx.fillStyle = '#7a3b8a'; ctx.beginPath(); ctx.ellipse(x, y, 13, 6, 0, Math.PI, 0); ctx.fill();
+  }
+  // the hero cap (Mossy / Heartcap)
+  const pr = p.r * (1 + capPulse * 0.08) * (G.bloomed ? 1.4 : 1), bob = Math.sin(T * 1.6) * 3;
+  ctx.fillStyle = '#efe2cb'; ctx.beginPath(); ctx.moveTo(p.x - pr * 0.28, p.y + pr * 0.55); ctx.quadraticCurveTo(p.x - pr * 0.2, p.y - pr * 0.1, p.x - pr * 0.22, p.y - pr * 0.45 + bob); ctx.lineTo(p.x + pr * 0.22, p.y - pr * 0.45 + bob); ctx.quadraticCurveTo(p.x + pr * 0.2, p.y - pr * 0.1, p.x + pr * 0.28, p.y + pr * 0.55); ctx.fill();
+  // face
+  ctx.fillStyle = '#2a1840'; const blink = (T % 4) < 0.12 ? 0.2 : 1;
+  ctx.beginPath(); ctx.ellipse(p.x - pr * 0.09, p.y - pr * 0.12 + bob, pr * 0.035, pr * 0.05 * blink, 0, 0, 7); ctx.ellipse(p.x + pr * 0.09, p.y - pr * 0.12 + bob, pr * 0.035, pr * 0.05 * blink, 0, 0, 7); ctx.fill();
+  ctx.strokeStyle = '#2a1840'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p.x, p.y - pr * 0.02 + bob, pr * 0.06, 0.2, Math.PI - 0.2); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,120,160,.5)'; ctx.beginPath(); ctx.arc(p.x - pr * 0.16, p.y - pr * 0.03 + bob, pr * 0.04, 0, 7); ctx.arc(p.x + pr * 0.16, p.y - pr * 0.03 + bob, pr * 0.04, 0, 7); ctx.fill();
+  const capCol = G.bloomed ? '#ff9df2' : `hsl(${300 - ch * 10},80%,${55 + light * 15}%)`;
+  ctx.shadowColor = capCol; ctx.shadowBlur = 30 + capPulse * 30 + light * 20;
+  const cg = ctx.createRadialGradient(p.x - pr * 0.3, p.y - pr * 0.9 + bob, 4, p.x, p.y - pr * 0.5 + bob, pr * 1.1);
+  cg.addColorStop(0, '#fff6fb'); cg.addColorStop(0.35, capCol); cg.addColorStop(1, `hsl(${280 - ch * 10},60%,30%)`);
+  ctx.fillStyle = cg; ctx.beginPath(); ctx.ellipse(p.x, p.y - pr * 0.42 + bob, pr * (1 + capPulse * 0.05), pr * 0.72, 0, Math.PI, 0); ctx.quadraticCurveTo(p.x, p.y - pr * 0.28 + bob, p.x - pr, p.y - pr * 0.42 + bob); ctx.fill();
+  ctx.shadowBlur = 0; ctx.fillStyle = 'rgba(255,255,255,.75)';
+  [[-.5, -.75, .1], [.1, -.95, .08], [.55, -.7, .09], [-.15, -.6, .06], [.35, -.55, .05]].forEach(([a, b, r]) => { ctx.beginPath(); ctx.arc(p.x + a * pr, p.y + b * pr + bob, r * pr, 0, 7); ctx.fill(); });
+  // fireflies
+  for (let i = 0; i < Math.min(40, G.own[1]); i++) {
+    const d = deco[i % 60], a = T * (0.4 + d.s * 0.6) + d.k * 6.28, rr = p.r * (1.3 + d.x * 1.6);
+    const x = p.x + Math.cos(a) * rr, y = p.y - p.r * 0.6 + Math.sin(a * 1.3) * rr * 0.5;
+    ctx.fillStyle = '#fff27a'; ctx.globalAlpha = 0.5 + 0.5 * Math.sin(T * 6 + i); ctx.shadowColor = '#fff27a'; ctx.shadowBlur = 8; ctx.beginPath(); ctx.arc(x, y, 2.4, 0, 7); ctx.fill();
+  }
+  ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+  // zaps
+  ctx.strokeStyle = '#fff9b0'; ctx.lineWidth = 2;
+  zaps.forEach(z => { ctx.globalAlpha = z.l * 5; ctx.beginPath(); ctx.moveTo(z.x1, z.y1); for (let k = 1; k < 6; k++) ctx.lineTo(z.x1 + (z.x2 - z.x1) * k / 6 + (Math.random() - .5) * 14, z.y1 + (z.y2 - z.y1) * k / 6 + (Math.random() - .5) * 14); ctx.lineTo(z.x2, z.y2); ctx.stroke(); });
+  ctx.globalAlpha = 1;
+  // golden spores
+  golds.forEach(g => { ctx.fillStyle = '#ffd24d'; ctx.shadowColor = '#ffd24d'; ctx.shadowBlur = 24; ctx.beginPath(); ctx.arc(g.x, g.y, 14 + Math.sin(T * 8) * 2, 0, 7); ctx.fill(); ctx.fillStyle = '#fff8d0'; ctx.beginPath(); ctx.arc(g.x - 4, g.y - 4, 4, 0, 7); ctx.fill(); ctx.shadowBlur = 0; });
+  // moths
+  moths.forEach(m => {
+    const fl = Math.sin(m.ph), r = m.r;
+    ctx.save(); ctx.translate(m.x, m.y);
+    ctx.fillStyle = m.flash > 0 ? '#fff' : (m.mother ? '#2a0f3d' : (m.max > 1 ? '#5a4632' : '#3b2d57'));
+    ctx.shadowColor = '#000'; ctx.shadowBlur = 10;
+    for (const sd of [-1, 1]) { ctx.beginPath(); ctx.ellipse(sd * r * 0.9, -r * 0.1, r * (0.9 + fl * 0.3), r * 0.6 * Math.abs(0.4 + fl * 0.6) + 2, sd * 0.4, 0, 7); ctx.fill(); ctx.beginPath(); ctx.ellipse(sd * r * 0.6, r * 0.45, r * 0.55, r * 0.35 * Math.abs(0.4 + fl * 0.6) + 1, -sd * 0.5, 0, 7); ctx.fill(); }
+    ctx.fillStyle = m.mother ? '#1a0626' : '#241a33'; ctx.beginPath(); ctx.ellipse(0, 0, r * 0.25, r * 0.75, 0, 0, 7); ctx.fill();
+    ctx.shadowBlur = 0; ctx.fillStyle = '#ff4d6d'; ctx.beginPath(); ctx.arc(-r * 0.1, -r * 0.45, r * 0.07 + 1, 0, 7); ctx.arc(r * 0.1, -r * 0.45, r * 0.07 + 1, 0, 7); ctx.fill();
+    if (m.max > 1) { ctx.fillStyle = '#222'; ctx.fillRect(-r, -r * 1.3, r * 2, 4); ctx.fillStyle = '#ff6b8b'; ctx.fillRect(-r, -r * 1.3, r * 2 * m.hp / m.max, 4); }
+    ctx.restore();
+  });
+  // particles
+  parts.forEach(q => { ctx.globalAlpha = Math.max(0, q.l); ctx.fillStyle = q.c; ctx.beginPath(); ctx.arc(q.x, q.y, q.r, 0, 7); ctx.fill(); });
+  ctx.globalAlpha = 1;
+  ctx.textAlign = 'center'; ctx.font = 'bold 18px Trebuchet MS, sans-serif';
+  floats.forEach(f => { ctx.globalAlpha = Math.min(1, f.l * 2); ctx.font = `bold ${f.s}px Trebuchet MS, sans-serif`; ctx.fillStyle = '#000'; ctx.fillText(f.t, f.x + 1.5, f.y + 1.5); ctx.fillStyle = f.c; ctx.fillText(f.t, f.x, f.y); });
+  ctx.globalAlpha = 1;
+  // gloom vignette
+  if (G.gloom > 0) { const v = ctx.createRadialGradient(p.x, p.y, Math.min(s.w, s.h) * 0.2, p.x, p.y, Math.max(s.w, s.h) * 0.75); v.addColorStop(0, 'rgba(10,0,20,0)'); v.addColorStop(1, `rgba(10,0,20,${G.gloom / 110})`); ctx.fillStyle = v; ctx.fillRect(s.x, s.y, s.w, s.h); }
+  ctx.restore();
+  if (state !== 'title') drawHUD();
+}
+function drawHUD() {
+  const x = SAFE.l + 12, y = SAFE.t + 10, s = scene;
+  ctx.save(); ctx.textAlign = 'left';
+  const bw = Math.min(260, s.w - x - 120);
+  ctx.fillStyle = 'rgba(14,9,30,.7)'; roundRect(x - 6, y - 4, bw + 12, 92, 12); ctx.fill();
+  ctx.font = 'bold 26px Trebuchet MS, sans-serif'; ctx.fillStyle = '#ffe9a8'; ctx.shadowColor = '#ffb84d'; ctx.shadowBlur = 10;
+  ctx.fillText('✦ ' + fmt(G.spores), x, y + 24); ctx.shadowBlur = 0;
+  ctx.font = '13px Trebuchet MS, sans-serif'; ctx.fillStyle = '#d9cdf5';
+  ctx.fillText(`${fmt(sps())}/s · tap ${fmt(clickVal())} · total ${fmt(G.total)}`, x, y + 44);
+  ctx.fillStyle = '#b9a5ef'; ctx.fillText(CHAPTERS[Math.min(6, Math.max(1, G.ch))].t + (G.frenzy > 0 ? '  · FRENZY!' : ''), x, y + 62);
+  // gloom bar
+  ctx.fillStyle = '#1a1030'; roundRect(x, y + 70, bw, 12, 6); ctx.fill();
+  const gl = Math.min(1, G.gloom / 100);
+  ctx.fillStyle = gl > 0.7 ? '#ff4d6d' : '#8a5cff'; roundRect(x, y + 70, Math.max(6, bw * gl), 12, 6); ctx.fill();
+  ctx.font = 'bold 10px Trebuchet MS, sans-serif'; ctx.fillStyle = '#fff'; ctx.fillText('GLOOM ' + Math.round(G.gloom) + '%', x + 6, y + 80);
+  // next chapter progress
+  if (G.ch < 6) { const nx = CH[G.ch], pv = CH[G.ch - 1] || 0; ctx.fillStyle = 'rgba(14,9,30,.7)'; roundRect(x - 6, s.y + s.h - 34 - (portrait ? 0 : SAFE.b), Math.min(bw + 12, s.w - 24), 26, 10); ctx.fill();
+    ctx.fillStyle = '#d9cdf5'; ctx.font = '12px Trebuchet MS, sans-serif'; ctx.fillText(`Next chapter at ${fmt(nx)} total (${Math.floor(Math.min(1, (G.total - pv) / (nx - pv)) * 100)}%)`, x, s.y + s.h - 17 - (portrait ? 0 : SAFE.b)); }
+  ctx.restore();
+}
+function roundRect(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+
+// ---------- story ----------
+function showStory(ch, after) {
+  storyCh = ch; storyIdx = 0; afterStory = after || null; state = 'story';
+  $('story').classList.remove('hidden'); renderStory();
+}
+function renderStory() {
+  const C = CHAPTERS[storyCh], L = C.lines[storyIdx];
+  $('stTitle').textContent = C.t; $('stWho').textContent = L[0]; $('stLine').textContent = L[1];
+  $('bNext').textContent = storyIdx < C.lines.length - 1 ? 'Next ▸' : (storyCh === 7 ? 'The End ▸' : 'Play ▸');
+  drawStoryArt(L[0]);
+}
+function nextStory() {
+  if (state !== 'story') return;
+  tone(700, 0.08, 'sine', 0.08);
+  storyIdx++;
+  if (storyIdx >= CHAPTERS[storyCh].lines.length) { $('story').classList.add('hidden'); if (afterStory) { const f = afterStory; afterStory = null; f(); } else { state = 'play'; } return; }
+  renderStory();
+}
+function drawStoryArt(who) {
+  const c = $('storyArt').getContext('2d'), w = 480, h = 140;
+  const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, storyCh === 7 ? '#ffb877' : '#1a1238'); g.addColorStop(1, storyCh === 7 ? '#ffe6b0' : '#33215e'); c.fillStyle = g; c.fillRect(0, 0, w, h);
+  c.fillStyle = storyCh === 7 ? '#c98a5a' : '#120c26'; for (let i = 0; i < 10; i++) c.fillRect(i * 52 + 10, 0, 14 + (i % 3) * 6, h);
+  c.fillStyle = '#2a2050'; c.fillRect(0, h - 26, w, 26);
+  const cx = w / 2, cy = h - 26;
+  const mush = (x, y, r, col) => { c.fillStyle = '#efe2cb'; c.fillRect(x - r * 0.22, y - r * 0.9, r * 0.44, r * 0.9); c.fillStyle = col; c.shadowColor = col; c.shadowBlur = 20; c.beginPath(); c.ellipse(x, y - r * 0.85, r, r * 0.65, 0, Math.PI, 0); c.fill(); c.shadowBlur = 0; };
+  if (who === 'Old Shelf') { c.fillStyle = '#3a2a1a'; c.fillRect(cx - 30, 0, 60, h); [0, 1, 2].forEach(i => { c.fillStyle = '#e0a94e'; c.beginPath(); c.ellipse(cx + 40, 40 + i * 30, 36, 12, 0, Math.PI, 0); c.fill(); }); c.fillStyle = '#2a1840'; c.fillRect(cx + 30, 28, 4, 4); c.fillRect(cx + 46, 28, 4, 4); mush(cx - 110, cy, 30, '#f2a6ff'); }
+  else if (who === 'Toad Ferryman') { c.fillStyle = '#0d1a2a'; c.fillRect(0, cy - 4, w, 30); c.fillStyle = '#4c8a3a'; c.beginPath(); c.ellipse(cx, cy - 16, 40, 26, 0, 0, 7); c.fill(); c.fillStyle = '#d9c27a'; c.beginPath(); c.moveTo(cx - 40, cy - 34); c.lineTo(cx + 40, cy - 34); c.lineTo(cx, cy - 66); c.fill(); c.fillStyle = '#fff'; c.beginPath(); c.arc(cx - 16, cy - 32, 7, 0, 7); c.arc(cx + 16, cy - 32, 7, 0, 7); c.fill(); c.fillStyle = '#000'; c.beginPath(); c.arc(cx - 16, cy - 32, 3, 0, 7); c.arc(cx + 16, cy - 32, 3, 0, 7); c.fill(); c.fillStyle = '#ff9d4d'; c.shadowColor = '#ff9d4d'; c.shadowBlur = 16; c.beginPath(); c.arc(cx + 90, cy - 40, 9, 0, 7); c.fill(); c.shadowBlur = 0; }
+  else if (who === 'The Gloom' || storyCh === 6) { c.fillStyle = '#05010a'; c.globalAlpha = 0.8; c.fillRect(0, 0, w, h); c.globalAlpha = 1; c.fillStyle = '#2a0f3d'; c.beginPath(); c.ellipse(cx - 60, 60, 70, 40, 0.3, 0, 7); c.ellipse(cx + 60, 60, 70, 40, -0.3, 0, 7); c.fill(); c.fillStyle = '#ff4d6d'; c.beginPath(); c.arc(cx - 10, 50, 5, 0, 7); c.arc(cx + 10, 50, 5, 0, 7); c.fill(); mush(cx, cy + 6, 16, '#f2a6ff'); }
+  else if (who === 'Mycelium') { c.strokeStyle = '#7ff7e1'; c.lineWidth = 2; for (let i = 0; i < 16; i++) { c.globalAlpha = 0.6; c.beginPath(); c.moveTo(cx, cy); c.quadraticCurveTo(cx + (i - 8) * 20, cy + 30, cx + (i - 8) * 32, h); c.stroke(); } c.globalAlpha = 1; mush(cx, cy, 28, '#f2a6ff'); }
+  else { mush(cx, cy, storyCh === 7 ? 60 : 32, storyCh === 7 ? '#ff9df2' : '#f2a6ff'); if (storyCh === 2) { c.fillStyle = '#3b2d57'; [[100, 40], [380, 50], [330, 30]].forEach(([x, y]) => { c.beginPath(); c.ellipse(x - 10, y, 14, 8, 0.4, 0, 7); c.ellipse(x + 10, y, 14, 8, -0.4, 0, 7); c.fill(); }); } if (storyCh === 5) { c.fillStyle = '#e8eeff'; c.shadowColor = '#bcd'; c.shadowBlur = 30; c.beginPath(); c.arc(380, 40, 18, 0, 7); c.fill(); c.shadowBlur = 0; } }
+  c.fillStyle = '#fff27a'; for (let i = 0; i < 14; i++) { c.globalAlpha = Math.random(); c.fillRect(Math.random() * w, Math.random() * h * 0.8, 2, 2); } c.globalAlpha = 1;
+}
+
+// ---------- flow ----------
+function startGame(cont) {
+  initAudio();
+  const s = cont ? loadGame() : null;
+  G = Object.assign(fresh(), s || {});
+  moths = []; parts = []; floats = []; golds = []; zaps = []; lastShopSig = '';
+  $('title').classList.add('hidden'); $('endO').classList.add('hidden'); $('pauseO').classList.add('hidden');
+  $('shop').classList.remove('hidden'); $('topBtns').classList.remove('hidden');
+  resize();
+  if (s) { state = 'play'; } else { G.ch = 1; showStory(1); }
+}
+function endGame(win) {
+  state = win ? 'won' : 'over'; clearSave();
+  const score = Math.floor(G.total); let best = false;
+  if (score > hi.score) { hi.score = score; best = true; }
+  if (win && (!hi.best || G.t < hi.best)) hi.best = Math.round(G.t);
+  saveHi();
+  if (!win) { sfx.lose(); shake = 20; }
+  $('endT').textContent = win ? 'The Wood Awakes!' : 'The Forest Sleeps';
+  $('endP').textContent = win ? `You bloomed the Heartcap in ${Math.floor(G.t / 60)}m ${Math.round(G.t % 60)}s and popped ${G.popped} moths.` : `The Gloom filled the wood in ${CHAPTERS[Math.max(1, G.ch)].t}. Pop moths faster and grow Glow Gnats and Lantern Caps to push it back.`;
+  $('endS').innerHTML = `Light gathered: <b>${fmt(score)}</b>${best ? ' · NEW BEST!' : ''}<br>Best: ${fmt(hi.score)}${hi.best ? ' · fastest bloom ' + Math.floor(hi.best / 60) + 'm ' + (hi.best % 60) + 's' : ''}`;
+  $('endO').classList.remove('hidden'); $('shop').classList.add('hidden'); $('topBtns').classList.add('hidden'); resize();
+}
+function togglePause() {
+  if (state === 'play') { state = 'paused'; $('pauseO').classList.remove('hidden'); if (AC) AC.suspend().catch(() => {}); saveGame(); }
+  else if (state === 'paused') { state = 'play'; $('pauseO').classList.add('hidden'); if (AC) AC.resume().catch(() => {}); }
+}
+function toTitle() {
+  saveGame(); state = 'title'; $('pauseO').classList.add('hidden'); $('shop').classList.add('hidden'); $('topBtns').classList.add('hidden'); $('endO').classList.add('hidden'); $('title').classList.remove('hidden'); refreshTitle(); resize();
+  if (AC) AC.resume().catch(() => {});
+}
+function refreshTitle() { $('bCont').classList.toggle('hidden', !loadGame()); $('hiT').textContent = hi.score ? `Best light: ${fmt(hi.score)}` + (hi.best ? ` · fastest bloom ${Math.floor(hi.best / 60)}m ${hi.best % 60}s` : '') : ''; }
+$('bStart').addEventListener('click', () => { clearSave(); startGame(false); });
+$('bCont').addEventListener('click', () => startGame(true));
+$('bNext').addEventListener('click', e => { e.stopPropagation(); nextStory(); });
+$('story').addEventListener('click', e => { if (e.target.id !== 'bNext') nextStory(); });
+$('bResume').addEventListener('click', togglePause);
+$('bQuit').addEventListener('click', toTitle);
+$('bAgain').addEventListener('click', () => { $('endO').classList.add('hidden'); clearSave(); startGame(false); });
+$('bPause').addEventListener('click', () => togglePause());
+$('bMute').addEventListener('click', () => { initAudio(); setMute(!muted); });
+
+// pointer on canvas
+cv.addEventListener('pointerdown', e => {
+  if (state !== 'play') return; e.preventDefault();
+  const x = e.clientX, y = e.clientY;
+  for (const g of golds) if (Math.hypot(g.x - x, g.y - y) < 34) { catchGold(g); return; }
+  let best = null, bd = 1e9;
+  for (const m of moths) { const d = Math.hypot(m.x - x, m.y - y); if (d < m.r + 26 && d < bd) { bd = d; best = m; } }
+  if (best) { hitMoth(best); return; }
+  const p = capPos();
+  if (Math.hypot(x - p.x, y - (p.y - p.r * 0.3)) < p.r * 1.25) tapCap(x, y);
+  else { burst(x, y, '#6b5a9a', 4); }
+});
+addEventListener('keydown', e => {
+  const k = e.code;
+  if (state === 'story') { if (k === 'Space' || k === 'Enter') { e.preventDefault(); nextStory(); } return; }
+  if (state === 'title') { if (k === 'Enter' || k === 'Space') { e.preventDefault(); clearSave(); startGame(false); } return; }
+  if ((state === 'over' || state === 'won') && (k === 'Enter' || k === 'Space')) { e.preventDefault(); clearSave(); startGame(false); return; }
+  if (k === 'KeyP' || k === 'Escape') { togglePause(); return; }
+  if (k === 'KeyM') { initAudio(); setMute(!muted); return; }
+  if (state !== 'play') return;
+  if (k === 'Space' || k === 'Enter') { e.preventDefault(); if (!e.repeat) { // space also pops the nearest moth if it's close to the cap
+      const p = capPos(); const m = moths.find(m => Math.hypot(m.x - p.x, m.y - p.y) < p.r * 2.2); if (m) hitMoth(m); else tapCap(); } }
+  const d = /^Digit([1-6])$/.exec(k); if (d) buy(+d[1] - 1);
+  if (k === 'KeyU') buyCheapestUp();
+  if (k === 'KeyB') bloom();
+  if (k === 'KeyG' && golds[0]) catchGold(golds[0]);
+});
+
+let last = performance.now(), shopT = 0, saveT = 0;
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (state === 'play') { update(dt); shopT -= dt; if (shopT <= 0) { shopT = 0.15; updateShop(); } saveT -= dt; if (saveT <= 0) { saveT = 5; saveGame(); } }
+  else if (state === 'over' || state === 'won' || state === 'story') { for (let i = parts.length - 1; i >= 0; i--) { const q = parts[i]; q.x += q.vx * dt; q.y += q.vy * dt; q.vy += 200 * dt; q.l -= dt; if (q.l <= 0) parts.splice(i, 1); } shake = Math.max(0, shake - dt * 30); }
+  if (state === 'title') { G = G.own ? G : fresh(); G.ch = G.ch || 1; }
+  draw(now);
+  requestAnimationFrame(loop);
+}
+G = fresh(); G.ch = 1; resize(); refreshTitle(); requestAnimationFrame(loop);
+
+window.__autoPause = () => { if (state === 'play') togglePause(); };
+window.__canResumeAudio = () => state !== 'paused';
+window.__spore = {
+  get state() { return state; }, get chapter() { return G.ch; }, get spores() { return G.spores; }, get total() { return G.total; }, get gloom() { return G.gloom; },
+  get moths() { return moths.length; }, get own() { return G.own.slice(); },
+  add(n) { G.spores += n; G.total += n; },
+  goto(ch) { ch = Math.max(1, Math.min(6, ch)); const need = CH[ch - 1]; G.total = Math.max(G.total, need); G.spores = Math.max(G.spores, need * 0.6); G.ch = ch - 1; if (state !== 'play') { state = 'play'; $('story').classList.add('hidden'); } },
+  skipStory() { while (state === 'story') nextStory(); },
+  grow(i, n) { G.own[i] += n; },
+  spawnMoth(m) { spawnMoth(!!m); }, gloomTo(v) { G.gloom = v; },
+};
+})();
+</script>
+</body>
+</html>
