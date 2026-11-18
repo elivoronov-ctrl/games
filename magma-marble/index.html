@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Magma Marble</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#1a0805">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
+<link rel="icon" href="data:,">
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;touch-action:none;background:#1a0805;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;
+  font-family:"Trebuchet MS",system-ui,sans-serif;color:#fff1de}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+button{touch-action:manipulation;font-family:inherit}
+.overlay{position:fixed;inset:0;padding:calc(16px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
+  display:flex;align-items:center;justify-content:center;box-sizing:border-box;background:radial-gradient(circle,rgba(70,20,8,.72),rgba(15,4,2,.94));z-index:10}
+.hidden{display:none!important}
+.card{touch-action:pan-y;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;max-height:calc(100% - 8px);overflow:auto;
+  background:linear-gradient(#3a1a10,#1d0c07);border:3px solid #ff8a2a;border-radius:18px;padding:18px 22px;max-width:560px;width:100%;box-sizing:border-box;text-align:center;box-shadow:0 0 50px #ff4a0055,0 10px 40px #000b}
+h1{margin:2px 0;font-size:clamp(38px,10vw,70px);color:#ffcf4a;text-shadow:0 3px 0 #a02a08,0 0 26px #ff6a1aaa;letter-spacing:1px;line-height:1}
+h2{margin:6px 0;color:#ffcf4a}
+p{margin:8px 0;line-height:1.4}
+.sub{color:#ffb38a}
+.how{text-align:left;font-size:14px;background:#0006;border-radius:10px;padding:8px 12px;margin:10px 0}
+.how b{color:#ffcf4a}
+.btn{background:linear-gradient(#ffcf4a,#ff6a1a);color:#3a0e02;border:none;border-radius:12px;padding:12px 28px;font-size:20px;font-weight:bold;margin:8px 6px;cursor:pointer;box-shadow:0 4px 0 #8a2a06;min-height:48px}
+#hud{position:fixed;left:calc(12px + env(safe-area-inset-left));top:calc(10px + env(safe-area-inset-top));z-index:3;font-weight:bold;text-shadow:2px 2px 0 #000;pointer-events:none;font-size:15px}
+#hud .big{font-size:20px;color:#ffcf4a}
+#heatWrap{width:150px;height:12px;background:#0009;border:2px solid #ffcf4a99;border-radius:7px;margin-top:4px;overflow:hidden}
+#heat{height:100%;width:0;background:linear-gradient(90deg,#ffcf4a,#ff3a0a)}
+#timer{position:fixed;left:50%;transform:translateX(-50%);top:calc(10px + env(safe-area-inset-top));z-index:3;font-size:26px;font-weight:bold;color:#ffcf4a;text-shadow:2px 2px 0 #000;pointer-events:none}
+@media (max-width:560px){#timer{left:auto;transform:none;right:calc(14px + env(safe-area-inset-right));top:calc(66px + env(safe-area-inset-top))}}
+#ban{position:fixed;left:0;right:0;top:26%;text-align:center;font-size:clamp(22px,5.5vw,42px);font-weight:bold;color:#ffcf4a;text-shadow:3px 3px 0 #000,0 0 20px #ff5a0a;z-index:3;pointer-events:none;transition:opacity .5s;padding:0 16px;opacity:0}
+#topBtns{position:fixed;top:calc(10px + env(safe-area-inset-top));right:calc(10px + env(safe-area-inset-right));z-index:5;display:flex;gap:8px}
+#topBtns button{min-width:48px;min-height:48px;border-radius:12px;border:2px solid #ffcf4a88;background:#0008;color:#ffcf4a;font-size:22px;cursor:pointer}
+#touch{display:none;position:fixed;inset:0;pointer-events:none;z-index:4}
+#touch.on{display:block}
+#joy{position:absolute;left:calc(22px + env(safe-area-inset-left));bottom:calc(22px + env(safe-area-inset-bottom));width:140px;height:140px;border-radius:50%;background:#ffffff14;border:2px solid #ffffff44;pointer-events:auto}
+#knob{position:absolute;left:45px;top:45px;width:50px;height:50px;border-radius:50%;background:#ffcf4a88}
+#jumpB{position:absolute;right:calc(26px + env(safe-area-inset-right));bottom:calc(34px + env(safe-area-inset-bottom));width:96px;height:96px;border-radius:50%;background:#ff6a1a55;border:2px solid #ffcf4aaa;color:#fff;font-weight:bold;font-size:16px;pointer-events:auto}
+</style>
+<script>
+/* iOS / touch hardening: audio unlock+resume, no zoom/scroll, safe-area insets, rotation resize */
+(function(){
+  var ctxs = [], AC = window.AudioContext || window.webkitAudioContext;
+  if (AC) { var Wr = function(o){ var x = o ? new AC(o) : new AC(); ctxs.push(x); return x; }; Wr.prototype = AC.prototype; window.AudioContext = Wr; if (window.webkitAudioContext) window.webkitAudioContext = Wr; }
+  function resume(){ if (window.__canResumeAudio && !window.__canResumeAudio()) return; ctxs.forEach(function(x){ if (x.state !== 'running' && x.state !== 'closed') { try { var p = x.resume(); if (p && p.catch) p.catch(function(){}); } catch(e){} } }); }
+  ['touchend','pointerup','click','keydown'].forEach(function(ev){ addEventListener(ev, resume, true); });
+  document.addEventListener('visibilitychange', function(){ if (document.hidden) { try { window.__autoPause && window.__autoPause(); } catch(e){} } else resume(); });
+  addEventListener('pagehide', function(){ try { window.__autoPause && window.__autoPause(); } catch(e){} });
+  document.addEventListener('gesturestart', function(e){ e.preventDefault(); }, {passive:false});
+  document.addEventListener('dblclick', function(e){ e.preventDefault(); }, {passive:false});
+  document.addEventListener('touchmove', function(e){ var t = e.target; if (t && t.closest && t.closest('.card,input,textarea')) return; if (e.cancelable) e.preventDefault(); }, {passive:false});
+  window.SAFE = {t:0, r:0, b:0, l:0};
+  var probe = null;
+  function readSafe(){ if (!probe && document.body) { probe = document.createElement('div'); probe.style.cssText = 'position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)'; document.body.appendChild(probe); }
+    if (probe) { var s = getComputedStyle(probe); SAFE.t = parseFloat(s.paddingTop)||0; SAFE.r = parseFloat(s.paddingRight)||0; SAFE.b = parseFloat(s.paddingBottom)||0; SAFE.l = parseFloat(s.paddingLeft)||0; } }
+  document.addEventListener('DOMContentLoaded', readSafe); addEventListener('resize', readSafe);
+  var rt = 0; function kick(){ clearTimeout(rt); rt = setTimeout(function(){ readSafe(); dispatchEvent(new Event('resize')); }, 250); }
+  addEventListener('orientationchange', kick);
+  if (window.visualViewport) visualViewport.addEventListener('resize', function(){ if (Math.abs(visualViewport.height - innerHeight) > 1 || Math.abs(visualViewport.width - innerWidth) > 1) kick(); });
+})();
+</script>
+
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+</head>
+<body>
+<div id="hud" class="hidden">
+  <div class="big" id="hScore">0</div>
+  <div id="hLvl">Level 1</div>
+  <div id="hVil">Villagers 0/0</div>
+  <div id="hLives">♥♥♥</div>
+  <div id="heatWrap"><div id="heat"></div></div>
+</div>
+<div id="timer" class="hidden">60</div>
+<div id="ban"></div>
+<div id="topBtns"><button id="pauseB" title="Pause (P)">⏸</button><button id="muteB" title="Mute (M)">♪</button></div>
+<div id="touch"><div id="joy"><div id="knob"></div></div><button id="jumpB">JUMP</button></div>
+
+<div id="title" class="overlay"><div class="card">
+  <h1>MAGMA<br>MARBLE</h1>
+  <p class="sub">The volcano is waking. You are a basalt rescue orb, the only thing on Cinder Isle that can roll through fire.</p>
+  <div class="how">
+    <b>Goal:</b> roll across the floating rock, touch every stranded villager (they hop into your shell), then reach the glowing airship pad before the eruption timer runs out.<br>
+    <b>Move:</b> WASD / Arrows, or drag the on-screen stick &nbsp; <b>Jump:</b> Space / JUMP<br>
+    <b>Watch out:</b> lava below, falling ember bombs (red rings), crumbling rock, moving slabs, steam geysers. Too much <b>heat</b> costs a life.<br>
+    <b>P / Esc</b> pause &nbsp; <b>M</b> mute. 10 levels to the Crater Heart.
+  </div>
+  <p id="hiLine" class="sub"></p>
+  <button class="btn" id="startB">ROLL OUT</button>
+</div></div>
+<div id="mid" class="overlay hidden"><div class="card"><h2 id="midT">Level clear!</h2><p id="midP"></p><button class="btn" id="nextB">NEXT LEVEL</button></div></div>
+<div id="pauseO" class="overlay hidden"><div class="card"><h2>Paused</h2><p>Take a breath. The lava will wait.</p><button class="btn" id="resB">RESUME</button></div></div>
+<div id="endO" class="overlay hidden"><div class="card"><h1 id="endT" style="font-size:clamp(32px,8vw,56px)">ERUPTED</h1><p id="endP"></p><button class="btn" id="againB">PLAY AGAIN</button></div></div>
+
+<script type="module">
+import * as THREE from 'three';
+
+// ---------- utils ----------
+const $ = id => document.getElementById(id);
+function rngf(seed){ let s = seed >>> 0; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+let HI = 0; try { HI = +localStorage.getItem('magma-marble-hi') || 0; } catch (e) {}
+const mobile = matchMedia('(pointer:coarse)').matches;
+
+// ---------- audio ----------
+let AC = null, master = null, muted = false;
+try { muted = localStorage.getItem('magma-marble-mute') === '1'; } catch (e) {}
+function initAudio(){
+  if (AC) return; try { AC = new (window.AudioContext || window.webkitAudioContext)(); master = AC.createGain(); master.gain.value = muted ? 0 : 0.5; master.connect(AC.destination); startDrone(); } catch (e) { AC = null; }
+}
+function tone(f, d, type = 'sine', v = 0.2, slide = 0, delay = 0){
+  if (!AC) return; const t = AC.currentTime + delay; const o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t); if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(20, f + slide), t + d);
+  g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.001, t + d); o.connect(g); g.connect(master); o.start(t); o.stop(t + d + 0.02);
+}
+function noise(d, v = 0.3, f = 800, delay = 0){
+  if (!AC) return; const t = AC.currentTime + delay; const n = Math.floor(AC.sampleRate * d); const b = AC.createBuffer(1, n, AC.sampleRate); const a = b.getChannelData(0);
+  for (let i = 0; i < n; i++) a[i] = (Math.random() * 2 - 1) * (1 - i / n);
+  const s = AC.createBufferSource(); s.buffer = b; const fl = AC.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = f; const g = AC.createGain(); g.gain.value = v;
+  s.connect(fl); fl.connect(g); g.connect(master); s.start(t);
+}
+function startDrone(){
+  const o = AC.createOscillator(), o2 = AC.createOscillator(), g = AC.createGain(), f = AC.createBiquadFilter();
+  o.type = 'sawtooth'; o.frequency.value = 41; o2.type = 'sawtooth'; o2.frequency.value = 41.6; f.type = 'lowpass'; f.frequency.value = 140; g.gain.value = 0.07;
+  o.connect(f); o2.connect(f); f.connect(g); g.connect(master); o.start(); o2.start();
+}
+const SFX = {
+  jump: () => tone(300, 0.18, 'square', 0.12, 300),
+  land: () => noise(0.08, 0.2, 400),
+  rescue: () => { tone(660, 0.12, 'triangle', 0.2); tone(880, 0.12, 'triangle', 0.2, 0, 0.09); tone(1320, 0.25, 'triangle', 0.18, 0, 0.18); },
+  gem: () => tone(1200, 0.1, 'sine', 0.12, 400),
+  boom: () => { noise(0.6, 0.5, 600); tone(90, 0.5, 'sine', 0.35, -60); },
+  sizzle: () => { noise(0.9, 0.35, 3000); tone(200, 0.6, 'sawtooth', 0.1, -150); },
+  geyser: () => noise(0.7, 0.25, 2200),
+  crack: () => noise(0.15, 0.25, 1500),
+  clear: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.3, 'triangle', 0.18, 0, i * 0.11)),
+  tick: () => tone(1000, 0.05, 'square', 0.06),
+  lose: () => [400, 300, 200, 120].forEach((f, i) => tone(f, 0.3, 'sawtooth', 0.15, 0, i * 0.15)),
+};
+function setMute(m){ muted = m; if (master) master.gain.value = m ? 0 : 0.5; $('muteB').textContent = m ? '🔇' : '♪'; try { localStorage.setItem('magma-marble-mute', m ? '1' : '0'); } catch (e) {} }
+setMute(muted);
+
+// ---------- three setup ----------
+const renderer = new THREE.WebGLRenderer({ antialias: !mobile, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.prepend(renderer.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 400);
+function resize(){ renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.fov = camera.aspect < 0.8 ? 78 : 60; camera.updateProjectionMatrix(); }
+addEventListener('resize', resize); resize();
+
+const hemi = new THREE.HemisphereLight(0xffb080, 0x401008, 0.7); scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xffe0c0, 1.4); sun.position.set(-20, 40, -10); sun.castShadow = true;
+sun.shadow.mapSize.set(mobile ? 512 : 1024, mobile ? 512 : 1024); Object.assign(sun.shadow.camera, { left: -25, right: 25, top: 25, bottom: -25, near: 1, far: 120 });
+scene.add(sun); scene.add(sun.target);
+const lavaLight = new THREE.PointLight(0xff5010, 2.5, 40, 1.2); scene.add(lavaLight);
+
+// lava plane
+const lavaGeo = new THREE.PlaneGeometry(400, 400, 60, 60); lavaGeo.rotateX(-Math.PI / 2);
+const lavaBase = lavaGeo.attributes.position.array.slice();
+const lavaMat = new THREE.MeshStandardMaterial({ color: 0xff4a10, emissive: 0xff3a00, emissiveIntensity: 1.1, roughness: 0.6, flatShading: true, vertexColors: true });
+const lavaCol = new Float32Array(lavaGeo.attributes.position.count * 3); lavaGeo.setAttribute('color', new THREE.BufferAttribute(lavaCol, 3));
+const lava = new THREE.Mesh(lavaGeo, lavaMat); lava.position.y = -3; scene.add(lava);
+function updLava(t){
+  const p = lavaGeo.attributes.position.array;
+  for (let i = 0; i < p.length; i += 3) {
+    const x = lavaBase[i] + lava.position.x, z = lavaBase[i + 2] + lava.position.z;
+    const h = Math.sin(x * 0.15 + t * 1.3) * 0.35 + Math.cos(z * 0.12 - t) * 0.35 + Math.sin((x + z) * 0.3 + t * 2) * 0.15;
+    p[i + 1] = h; const k = clamp(0.55 + h * 0.6, 0, 1); lavaCol[i] = 1; lavaCol[i + 1] = 0.25 + k * 0.5; lavaCol[i + 2] = k * 0.15;
+  }
+  lavaGeo.attributes.position.needsUpdate = true; lavaGeo.attributes.color.needsUpdate = true; lavaGeo.computeVertexNormals();
+}
+
+// ember particles (ambient)
+const EMB = mobile ? 180 : 400;
+const embGeo = new THREE.BufferGeometry(); const embPos = new Float32Array(EMB * 3); const embV = new Float32Array(EMB);
+for (let i = 0; i < EMB; i++) { embPos[i * 3] = (Math.random() - 0.5) * 60; embPos[i * 3 + 1] = Math.random() * 25 - 3; embPos[i * 3 + 2] = (Math.random() - 0.5) * 60; embV[i] = 1 + Math.random() * 2; }
+embGeo.setAttribute('position', new THREE.BufferAttribute(embPos, 3));
+const embers = new THREE.Points(embGeo, new THREE.PointsMaterial({ color: 0xffa040, size: 0.18, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false }));
+scene.add(embers);
+
+// burst particles
+const BN = 500; const bGeo = new THREE.BufferGeometry(); const bPos = new Float32Array(BN * 3), bCol = new Float32Array(BN * 3); const bVel = new Float32Array(BN * 3), bLife = new Float32Array(BN);
+bGeo.setAttribute('position', new THREE.BufferAttribute(bPos, 3)); bGeo.setAttribute('color', new THREE.BufferAttribute(bCol, 3));
+const bursts = new THREE.Points(bGeo, new THREE.PointsMaterial({ size: 0.35, vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+bursts.frustumCulled = false; scene.add(bursts); let bIdx = 0;
+for (let i = 0; i < BN; i++) bPos[i * 3 + 1] = -999;
+function burst(x, y, z, n, col, spd = 6, up = 4){
+  const c = new THREE.Color(col);
+  for (let k = 0; k < n; k++) { const i = bIdx = (bIdx + 1) % BN; bPos[i*3] = x; bPos[i*3+1] = y; bPos[i*3+2] = z;
+    const a = Math.random() * Math.PI * 2, s = Math.random() * spd; bVel[i*3] = Math.cos(a) * s; bVel[i*3+1] = Math.random() * up + up * 0.3; bVel[i*3+2] = Math.sin(a) * s; bLife[i] = 0.6 + Math.random() * 0.7;
+    bCol[i*3] = c.r; bCol[i*3+1] = c.g; bCol[i*3+2] = c.b; }
+}
+function updBursts(dt){
+  for (let i = 0; i < BN; i++) { if (bLife[i] <= 0) continue; bLife[i] -= dt; bVel[i*3+1] -= 12 * dt;
+    bPos[i*3] += bVel[i*3] * dt; bPos[i*3+1] += bVel[i*3+1] * dt; bPos[i*3+2] += bVel[i*3+2] * dt;
+    if (bLife[i] <= 0) bPos[i*3+1] = -999; const f = Math.min(1, bLife[i] * 2); bCol[i*3] *= 0.995 + 0 * f; }
+  bGeo.attributes.position.needsUpdate = true; bGeo.attributes.color.needsUpdate = true;
+}
+
+// ---------- player ball ----------
+function crackTex(){
+  const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
+  g.fillStyle = '#2a2220'; g.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 600; i++) { g.fillStyle = `rgba(${60 + Math.random() * 40|0},${50 + Math.random() * 30|0},${45},0.6)`; g.fillRect(Math.random() * 256, Math.random() * 256, 3, 3); }
+  g.strokeStyle = '#ff8a1a'; g.lineWidth = 3; g.shadowColor = '#ffcf4a'; g.shadowBlur = 8;
+  for (let i = 0; i < 14; i++) { g.beginPath(); let x = Math.random() * 256, y = Math.random() * 256; g.moveTo(x, y); for (let k = 0; k < 5; k++) { x += (Math.random() - 0.5) * 60; y += (Math.random() - 0.5) * 60; g.lineTo(x, y); } g.stroke(); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const ctex = crackTex();
+const ball = new THREE.Mesh(new THREE.SphereGeometry(0.6, 32, 20), new THREE.MeshStandardMaterial({ map: ctex, emissiveMap: ctex, emissive: 0xffffff, emissiveIntensity: 0.9, roughness: 0.8 }));
+ball.castShadow = true; scene.add(ball);
+const ballGlow = new THREE.PointLight(0xffa040, 1.2, 6); scene.add(ballGlow);
+const passengers = new THREE.Group(); scene.add(passengers); // little heads riding on top
+
+// ---------- level themes ----------
+const THEMES = [
+  { name: 'Ashfield Village', sky: 0x5a2a1a, fog: 0x6a3020, top: 0x8a7a6a, side: 0x3a2e28, t: 120 },
+  { name: 'Obsidian Steps', sky: 0x2a1020, fog: 0x3a1828, top: 0x3a3048, side: 0x18121e, t: 120 },
+  { name: 'Sulfur Springs', sky: 0x5a5010, fog: 0x6a5a18, top: 0xc8b040, side: 0x5a4a18, t: 125 },
+  { name: 'Ember Bridges', sky: 0x4a1408, fog: 0x5a1a0a, top: 0x9a5a3a, side: 0x3a1a10, t: 130 },
+  { name: 'Crumbling Caldera', sky: 0x3a1a10, fog: 0x4a2014, top: 0xa08070, side: 0x40281e, t: 130 },
+  { name: 'Geyser Gardens', sky: 0x2a3a3a, fog: 0x3a4848, top: 0x6a8a6a, side: 0x2a3a2e, t: 135 },
+  { name: 'Magma Falls', sky: 0x601808, fog: 0x7a2008, top: 0x705048, side: 0x2a1410, t: 140 },
+  { name: 'Pumice Peaks', sky: 0x4a3a40, fog: 0x5a4850, top: 0xd0c8c0, side: 0x6a6060, t: 140 },
+  { name: 'Smoke Tunnel', sky: 0x100808, fog: 0x1a0c08, top: 0x4a3a30, side: 0x1a1410, t: 150 },
+  { name: 'The Crater Heart', sky: 0x7a1000, fog: 0x8a1800, top: 0x2a2020, side: 0x100808, t: 160 },
+];
+
+// ---------- level build ----------
+const TS = 4; // tile size
+let tiles = [], villagers = [], gems = [], bombs = [], level = 0, lvlObj = new THREE.Group(); scene.add(lvlObj);
+let goal = null, timeLeft = 0, totalVil = 0, rescued = 0;
+const boxGeo = new THREE.BoxGeometry(TS - 0.15, 10, TS - 0.15);
+function buildLevel(n){
+  // clean up
+  scene.remove(lvlObj); lvlObj.traverse(o => { if (o.material && o.material.dispose && o !== lvlObj) { if (Array.isArray(o.material)) o.material.forEach(m => m.dispose()); else o.material.dispose(); } });
+  lvlObj = new THREE.Group(); scene.add(lvlObj);
+  tiles = []; villagers = []; gems = []; bombs = [];
+  const th = THEMES[n], R = rngf(9001 + n * 131);
+  scene.background = new THREE.Color(th.sky); scene.fog = new THREE.Fog(th.fog, 25, n === 8 ? 45 : 80);
+  hemi.intensity = n === 8 ? 0.35 : 0.7;
+  const map = new Map(); const key = (i, j) => i + ',' + j;
+  const topMat = new THREE.MeshStandardMaterial({ color: th.top, roughness: 0.95, flatShading: true });
+  const sideMat = new THREE.MeshStandardMaterial({ color: th.side, roughness: 1 });
+  const crumMat = new THREE.MeshStandardMaterial({ color: 0xb06a40, roughness: 1, emissive: 0x301000 });
+  const movMat = new THREE.MeshStandardMaterial({ color: 0x5a6a8a, roughness: 0.6, emissive: 0x0a1020 });
+  const geyMat = new THREE.MeshStandardMaterial({ color: 0x8aa0a0, roughness: 0.7, emissive: 0x103030 });
+  function add(i, j, h, type = 'n'){
+    if (map.has(key(i, j))) return map.get(key(i, j));
+    const top = h * 0.8;
+    const mats = type === 'c' ? [crumMat, crumMat, crumMat, crumMat, crumMat, crumMat] : type === 'm' ? [movMat, movMat, movMat, movMat, movMat, movMat] : [sideMat, sideMat, type === 'g' ? geyMat : topMat, sideMat, sideMat, sideMat];
+    const mesh = new THREE.Mesh(boxGeo, mats); mesh.position.set(i * TS, top - 5, j * TS); mesh.castShadow = true; mesh.receiveShadow = true; lvlObj.add(mesh);
+    const t = { i, j, x: i * TS, z: j * TS, top, baseTop: top, type, mesh, ox: 0, prevOx: 0, crumble: -1, gone: 0, phase: R() * 6, amp: 0, solid: true, vy: 0 };
+    if (type === 'm') { t.amp = 3 + R() * 2; t.speed = 0.8 + n * 0.08; }
+    if (type === 'g') { t.gt = R() * 3; const vent = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.9, 0.2, 10), new THREE.MeshBasicMaterial({ color: 0x203030 })); vent.position.set(0, 5.05, 0); mesh.add(vent); }
+    map.set(key(i, j), t); tiles.push(t); return t;
+  }
+  let i = 0, j = 0, h = 0, lastDir = 0; const len = 24 + n * 5;
+  add(0, 0, 0); add(1, 0, 0); add(-1, 0, 0); add(0, -1, 0); add(1, -1, 0); add(-1, -1, 0);
+  const vilAt = new Set(); const nV = 3 + Math.floor(n / 2);
+  while (vilAt.size < nV) vilAt.add(4 + Math.floor(R() * (len - 6)));
+  for (let k = 0; k < len; k++) {
+    let dir = 0; const r = R();
+    if (r < 0.22 && lastDir !== 1) dir = -1; else if (r < 0.44 && lastDir !== -1) dir = 1;
+    if (Math.abs(i + dir) > 4) dir = 0;
+    let type = 'n';
+    const special = k > 3 && k < len - 2;
+    if (special && dir === 0 && R() < 0.1 + n * 0.025 && !map.has(key(i, j + 1))) { j += 1; } // gap (jump)
+    i += dir; j += dir === 0 ? 1 : 0; lastDir = dir;
+    if (special && R() < 0.18) h = clamp(h + (R() < 0.6 ? 1 : -1), 0, 6);
+    if (special) { const q = R();
+      if (n >= 2 && q < 0.08 + n * 0.02) type = 'c';
+      else if (n >= 3 && q < 0.14 + n * 0.025 && dir === 0) type = 'm';
+      else if (n >= 5 && q < 0.2 + n * 0.02) type = 'g'; }
+    const t = add(i, j, h, type);
+    if (type === 'n' && R() < 0.35) addGem(t.x, t.top + 1, t.z);
+    if (vilAt.has(k)) { // side branch with villager
+      const sd = R() < 0.5 ? -1 : 1; const bl = 1 + Math.floor(R() * (1 + n / 4)); let bi = i, bh = h;
+      for (let b = 1; b <= bl; b++) { bi += sd; if (Math.abs(bi) > 7) break; if (b > 1 && R() < 0.3) bh = clamp(bh + 1, 0, 7); const bt = add(bi, j, bh, b === bl && n >= 4 && R() < 0.3 ? 'c' : 'n'); if (b === bl || Math.abs(bi + sd) > 7) { addVillager(bt); break; } }
+    }
+  }
+  // goal pad
+  j += 1; const gt = add(i, j, h); add(i + 1, j, h); add(i - 1, j, h); add(i, j + 1, h);
+  goal = { x: gt.x, z: gt.z, top: gt.top, grp: new THREE.Group() };
+  const pad = new THREE.Mesh(new THREE.CylinderGeometry(1.7, 1.7, 0.15, 24), new THREE.MeshStandardMaterial({ color: 0x40ffd0, emissive: 0x20a080, emissiveIntensity: 0.6 }));
+  pad.position.y = 0.08; goal.grp.add(pad); goal.pad = pad;
+  const bal = new THREE.Mesh(new THREE.SphereGeometry(2.2, 20, 14), new THREE.MeshStandardMaterial({ color: 0xe0503a, roughness: 0.6 })); bal.scale.y = 0.75; bal.position.y = 9; goal.grp.add(bal);
+  const stripe = new THREE.Mesh(new THREE.TorusGeometry(2.05, 0.18, 8, 24), new THREE.MeshStandardMaterial({ color: 0xffe08a })); stripe.rotation.x = Math.PI / 2; stripe.position.y = 9; goal.grp.add(stripe);
+  const basket = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.9, 1.6), new THREE.MeshStandardMaterial({ color: 0x8a5a2a })); basket.position.y = 5.6; goal.grp.add(basket);
+  for (const [a, b] of [[-0.7, -0.7], [0.7, -0.7], [-0.7, 0.7], [0.7, 0.7]]) { const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 2.6), new THREE.MeshBasicMaterial({ color: 0x3a2a1a })); rope.position.set(a, 7.3, b); goal.grp.add(rope); }
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 30, 16, 1, true), new THREE.MeshBasicMaterial({ color: 0x60ffd0, transparent: true, opacity: 0.12, side: THREE.DoubleSide, depthWrite: false }));
+  beam.position.y = 15; goal.grp.add(beam); goal.beam = beam;
+  goal.grp.position.set(gt.x, gt.top, gt.z); lvlObj.add(goal.grp);
+  totalVil = villagers.length; rescued = 0; timeLeft = th.t + n * 4;
+  lava.position.set(0, -3, j * TS / 2);
+}
+function addGem(x, y, z){
+  const m = new THREE.Mesh(new THREE.OctahedronGeometry(0.35), new THREE.MeshStandardMaterial({ color: 0x60e0ff, emissive: 0x2080c0, emissiveIntensity: 0.8 }));
+  m.position.set(x, y, z); lvlObj.add(m); gems.push({ m, alive: true });
+}
+const VCOL = [0x4a90ff, 0x50d060, 0xff70b0, 0xffd040, 0xb070ff, 0x40e0e0];
+function addVillager(t){
+  const g = new THREE.Group(); const col = VCOL[villagers.length % VCOL.length];
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.4, 0.9, 10), new THREE.MeshStandardMaterial({ color: col })); body.position.y = 0.45; g.add(body);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.28, 12, 10), new THREE.MeshStandardMaterial({ color: 0xf0c8a0 })); head.position.y = 1.1; g.add(head);
+  const arm = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.6, 0.1), new THREE.MeshStandardMaterial({ color: col })); arm.position.set(0.35, 1.0, 0); g.add(arm);
+  const ring = new THREE.Mesh(new THREE.RingGeometry(0.9, 1.1, 24), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5, side: THREE.DoubleSide })); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.05; g.add(ring);
+  g.position.set(t.x, t.top, t.z); lvlObj.add(g); villagers.push({ g, arm, ring, tile: t, alive: true, col });
+}
+
+// ---------- game state ----------
+let state = 'title', score = 0, lives = 5, heat = 0, paused = false;
+const P = { x: 0, y: 1, z: 0, vx: 0, vy: 0, vz: 0, ground: null, safe: { x: 0, y: 1, z: 0 }, safeT: 0, inv: 0, coyote: 0, jumpBuf: 0 };
+const keys = {}; const joy = { x: 0, y: 0 }; let bombT = 2, shake = 0, banT = 0, tickSec = -1;
+function showBan(txt, t = 2.2){ $('ban').textContent = txt; $('ban').style.opacity = 1; banT = t; }
+function startLevel(n){
+  level = n; buildLevel(n); P.x = 0; P.y = 1.2; P.z = 0; P.vx = P.vy = P.vz = 0; P.safe = { x: 0, y: 1.2, z: 0 }; heat = 0; bombT = 3;
+  while (passengers.children.length) passengers.remove(passengers.children[0]);
+  state = 'play'; showBan(`Level ${n + 1}: ${THEMES[n].name}`, 2.6); hud(); for (const o of ['title', 'mid', 'endO']) $(o).classList.add('hidden');
+  $('hud').classList.remove('hidden'); $('timer').classList.remove('hidden');
+}
+function newGame(){ initAudio(); score = 0; lives = 5; startLevel(0); }
+function hud(){
+  $('hScore').textContent = score.toLocaleString(); $('hLvl').textContent = `Level ${level + 1}/10 · ${THEMES[level].name}`;
+  $('hVil').textContent = `Villagers ${rescued}/${totalVil}` + (rescued === totalVil ? ' ✓ to the airship!' : '');
+  $('hLives').textContent = '♥'.repeat(Math.max(0, lives)); $('heat').style.width = clamp(heat, 0, 100) + '%';
+  $('timer').textContent = Math.ceil(timeLeft); $('timer').style.color = timeLeft < 15 ? '#ff4a2a' : '#ffcf4a';
+}
+function loseLife(why){
+  lives--; SFX.sizzle(); shake = 0.6; burst(P.x, P.y, P.z, 60, 0xff6a1a, 8, 8);
+  if (lives <= 0) return gameOver(why);
+  showBan(why + ' · ' + lives + ' ♥ left', 2);
+  P.x = P.safe.x; P.y = P.safe.y + 1.5; P.z = P.safe.z; P.vx = P.vy = P.vz = 0; heat = 0; P.inv = 2;
+}
+function gameOver(why){
+  state = 'over'; SFX.lose(); saveHi();
+  $('endT').textContent = 'ERUPTED'; $('endP').innerHTML = `${why}.<br>Reached level ${level + 1} · Score <b>${score.toLocaleString()}</b><br>Best ${HI.toLocaleString()}`;
+  $('endO').classList.remove('hidden');
+}
+function saveHi(){ if (score > HI) { HI = score; try { localStorage.setItem('magma-marble-hi', HI); } catch (e) {} } }
+function levelClear(){
+  state = 'mid'; SFX.clear(); const tb = Math.ceil(timeLeft) * 10, lb = 1000 * (level + 1); score += tb + lb; saveHi(); hud();
+  burst(goal.x, goal.top + 1, goal.z, 120, 0x60ffd0, 8, 10);
+  if (level === 9) { state = 'won'; $('endT').textContent = 'ISLAND SAVED!';
+    $('endP').innerHTML = `The Crater Heart is calm and every villager is aboard the airships.<br>Final score <b>${score.toLocaleString()}</b> · Best ${HI.toLocaleString()}`; setTimeout(() => $('endO').classList.remove('hidden'), 900); return; }
+  lives = Math.min(7, lives + 1);
+  $('midT').textContent = `${THEMES[level].name} cleared!`;
+  $('midP').innerHTML = `${totalVil} villagers lifted to safety.<br>Time bonus +${tb} · Level bonus +${lb}<br>+1 ♥ · Next: <b>${THEMES[level + 1].name}</b>`;
+  setTimeout(() => $('mid').classList.remove('hidden'), 700);
+}
+function togglePause(){
+  if (state === 'play') { state = 'paused'; $('pauseO').classList.remove('hidden'); if (AC) AC.suspend().catch(() => {}); }
+  else if (state === 'paused') { state = 'play'; $('pauseO').classList.add('hidden'); if (AC) AC.resume().catch(() => {}); }
+}
+window.__canResumeAudio = () => state !== 'paused';
+
+// ---------- physics ----------
+function tileAt(x, z){
+  let best = null;
+  for (const t of tiles) { if (!t.solid) continue; const tx = t.x + t.ox; if (Math.abs(x - tx) <= TS / 2 && Math.abs(z - t.z) <= TS / 2) { if (!best || t.top > best.top) best = t; } }
+  return best;
+}
+function update(dt, time){
+  // tiles
+  for (const t of tiles) {
+    if (t.type === 'm') { t.prevOx = t.ox; t.ox = Math.sin(time * t.speed + t.phase) * t.amp; t.mesh.position.x = t.x + t.ox; }
+    if (t.type === 'c') {
+      if (t.crumble >= 0) { t.crumble += dt; t.mesh.position.x = t.x + (Math.random() - 0.5) * 0.15;
+        if (t.crumble > 0.75 && t.solid) { t.solid = false; t.vy = 0; SFX.crack(); burst(t.x, t.top, t.z, 20, 0xb06a40, 4, 3); }
+        if (!t.solid) { t.vy -= 20 * dt; t.mesh.position.y += t.vy * dt; t.gone += dt; }
+        if (t.gone > 4) { t.solid = true; t.crumble = -1; t.gone = 0; t.mesh.position.set(t.x, t.top - 5, t.z); } }
+    }
+    if (t.type === 'g') { t.gt += dt; const cyc = t.gt % 3.2;
+      if (cyc > 2.2 && cyc < 2.25 && Math.random() < 0.6) {}
+      if (cyc > 1.6 && cyc < 2.2 && Math.random() < 0.5) burst(t.x, t.top + 0.2, t.z, 1, 0xd0e0e0, 0.6, 2);
+      if (cyc >= 2.2) { if (Math.random() < 0.9) burst(t.x, t.top + 0.2, t.z, 3, 0xeaffff, 1.5, 14);
+        if (P.ground === t && P.inv <= 0) { P.vy = 17; P.ground = null; heat += 22; SFX.geyser(); shake = 0.3; } } }
+  }
+  // input
+  let ix = 0, iz = 0;
+  if (keys.ArrowLeft || keys.KeyA) ix += 1; if (keys.ArrowRight || keys.KeyD) ix -= 1;
+  if (keys.ArrowUp || keys.KeyW) iz += 1; if (keys.ArrowDown || keys.KeyS) iz -= 1;
+  ix += -joy.x; iz += -joy.y;
+  const il = Math.hypot(ix, iz); if (il > 1) { ix /= il; iz /= il; }
+  const acc = P.ground ? 28 : 14; P.vx += ix * acc * dt; P.vz += iz * acc * dt;
+  const fr = P.ground ? Math.pow(0.12, dt) : Math.pow(0.6, dt); if (!il) { P.vx *= fr; P.vz *= fr; } else { P.vx *= Math.pow(0.5, dt); P.vz *= Math.pow(0.5, dt); }
+  const sp = Math.hypot(P.vx, P.vz), mx = 9.5; if (sp > mx) { P.vx *= mx / sp; P.vz *= mx / sp; }
+  // carried by moving tile
+  if (P.ground && P.ground.type === 'm') P.x += P.ground.ox - P.ground.prevOx;
+  // horizontal move with step blocking
+  const nx = P.x + P.vx * dt, nz = P.z + P.vz * dt; const bottom = P.y - 0.6;
+  const blk = (x, z) => { const t = tileAt(x, z); return t && t.top > bottom + 0.3 && bottom > t.top - 6; };
+  if (!blk(nx, P.z)) P.x = nx; else P.vx *= -0.2;
+  if (!blk(P.x, nz)) P.z = nz; else P.vz *= -0.2;
+  // jump
+  P.jumpBuf -= dt; P.coyote -= dt; if (P.ground) P.coyote = 0.12;
+  if (P.jumpBuf > 0 && P.coyote > 0) { P.vy = 10.5; P.ground = null; P.coyote = 0; P.jumpBuf = 0; SFX.jump(); burst(P.x, P.y - 0.5, P.z, 8, 0xcfa080, 2, 1); }
+  // vertical
+  P.vy -= 26 * dt; P.y += P.vy * dt;
+  const t = tileAt(P.x, P.z); const wasG = P.ground; P.ground = null;
+  if (t && P.y - 0.6 <= t.top && P.y - 0.6 > t.top - 1.2 && P.vy <= 0) {
+    P.y = t.top + 0.6; if (!wasG && P.vy < -6) { SFX.land(); burst(P.x, t.top, P.z, 6, 0xaa8a70, 2, 1); } P.vy = 0; P.ground = t;
+    if (t.type === 'c' && t.crumble < 0) { t.crumble = 0; SFX.crack(); }
+    if (t.type === 'n' || (t.type === 'g' && t.gt % 3.2 < 1.2)) { P.safeT += dt; if (P.safeT > 0.4) { P.safe = { x: t.x, y: t.top + 0.6, z: t.z }; P.safeT = 0; } }
+  }
+  if (P.y < -2.6) { loseLife('Fell into the lava'); return; }
+  // heat
+  P.inv -= dt; heat = Math.max(0, heat - dt * 4); if (heat >= 100) { loseLife('Overheated'); return; }
+  // ball visual rotation
+  ball.position.set(P.x, P.y, P.z);
+  const axis = new THREE.Vector3(P.vz, 0, -P.vx); const d = axis.length() * dt / 0.6;
+  if (d > 0) { axis.normalize(); ball.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(axis, d)); }
+  ball.material.emissiveIntensity = 0.6 + heat / 60 + (P.inv > 0 ? Math.sin(time * 30) * 0.5 : 0);
+  ballGlow.position.set(P.x, P.y + 1, P.z); ballGlow.intensity = 1 + heat / 40;
+  passengers.position.set(P.x, P.y + 0.55, P.z); passengers.children.forEach((c, k) => { c.position.y = Math.abs(Math.sin(time * 8 + k)) * 0.12; });
+  // villagers
+  for (const v of villagers) { if (!v.alive) continue; v.arm.rotation.z = Math.sin(time * 8) * 0.6 + 0.4; v.ring.rotation.z = time; v.g.position.y = v.tile.top + (v.tile.solid ? 0 : -50);
+    const dx = P.x - v.g.position.x, dz = P.z - v.g.position.z, dy = P.y - v.g.position.y;
+    if (dx * dx + dz * dz < 1.7 && Math.abs(dy) < 2) { v.alive = false; lvlObj.remove(v.g); rescued++; score += 500; SFX.rescue(); burst(v.g.position.x, v.g.position.y + 1, v.g.position.z, 40, v.col, 5, 6);
+      const hd = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), new THREE.MeshStandardMaterial({ color: v.col, emissive: v.col, emissiveIntensity: 0.4 }));
+      const a = passengers.children.length * 1.3; hd.position.set(Math.cos(a) * 0.28, 0, Math.sin(a) * 0.28); passengers.add(hd);
+      showBan(rescued === totalVil ? 'Everyone aboard! Reach the airship!' : `Rescued! ${totalVil - rescued} to go`, 1.6); hud(); } }
+  // gems
+  for (const g of gems) { if (!g.alive) continue; g.m.rotation.y += dt * 3; const dx = P.x - g.m.position.x, dz = P.z - g.m.position.z, dy = P.y - g.m.position.y;
+    if (dx * dx + dy * dy + dz * dz < 1.3) { g.alive = false; lvlObj.remove(g.m); score += 25; SFX.gem(); burst(g.m.position.x, g.m.position.y, g.m.position.z, 10, 0x60e0ff, 3, 3); hud(); } }
+  // goal
+  const ready = rescued === totalVil; goal.pad.material.emissiveIntensity = ready ? 1 + Math.sin(time * 6) * 0.5 : 0.2; goal.beam.material.opacity = ready ? 0.25 : 0.06;
+  goal.grp.children[1].position.y = 9 + Math.sin(time * 1.5) * 0.3;
+  if (ready && Math.hypot(P.x - goal.x, P.z - goal.z) < 1.8 && Math.abs(P.y - 0.6 - goal.top) < 0.5) { levelClear(); return; }
+  else if (!ready && Math.hypot(P.x - goal.x, P.z - goal.z) < 1.8 && banT <= 0) showBan(`Rescue all villagers first (${rescued}/${totalVil})`, 1.2);
+  // bombs
+  if (level >= 1) { bombT -= dt; if (bombT <= 0) { bombT = Math.max(0.7, 3.2 - level * 0.28) * (0.6 + Math.random() * 0.8); spawnBomb(); } }
+  for (const b of bombs) { if (b.done) continue; b.t -= dt; b.m.position.y = b.ty + Math.max(0, b.t) * 18; b.ring.scale.setScalar(0.4 + (1 - b.t / b.t0) * 0.6); b.ring.material.opacity = 0.4 + Math.sin(time * 20) * 0.3;
+    if (b.t <= 0) { b.done = true; lvlObj.remove(b.m); lvlObj.remove(b.ring); SFX.boom(); burst(b.x, b.ty + 0.5, b.z, 45, 0xff7a1a, 7, 7);
+      const d2 = (P.x - b.x) ** 2 + (P.z - b.z) ** 2; if (d2 < 2.4 * 2.4 && Math.abs(P.y - b.ty) < 3) { shake = 0.5; if (P.inv <= 0) { heat += 38; const d = Math.sqrt(d2) || 1; P.vx += (P.x - b.x) / d * 8; P.vz += (P.z - b.z) / d * 8; P.vy = 6; P.ground = null; } } else if (d2 < 100) shake = Math.max(shake, 0.15); } }
+  bombs = bombs.filter(b => !b.done);
+  // timer
+  timeLeft -= dt; const s = Math.ceil(timeLeft); if (s !== tickSec) { tickSec = s; if (s <= 10 && s > 0) SFX.tick(); hud(); }
+  if (timeLeft <= 0) { timeLeft = 0; heat = 0; lives--; SFX.boom(); shake = 1; if (lives <= 0) return gameOver('The volcano erupted');
+    showBan('ERUPTION! Level restarts', 2.5); const l = lives, sc = score; startLevel(level); lives = l; score = sc; hud(); }
+  if (Math.random() < dt * 4) hud();
+}
+function spawnBomb(){
+  // target near the player, often in front
+  const cand = tiles.filter(t => t.solid && Math.abs(t.z - P.z) < 14 && Math.abs(t.x - P.x) < 12);
+  if (!cand.length) return; const t = Math.random() < 0.45 && P.ground ? P.ground : cand[Math.floor(Math.random() * cand.length)];
+  const x = t.x + t.ox + (Math.random() - 0.5) * 2, z = t.z + (Math.random() - 0.5) * 2;
+  const m = new THREE.Mesh(new THREE.DodecahedronGeometry(0.55), new THREE.MeshStandardMaterial({ color: 0x401008, emissive: 0xff4a00, emissiveIntensity: 1.2, flatShading: true }));
+  const ring = new THREE.Mesh(new THREE.RingGeometry(2.0, 2.4, 28), new THREE.MeshBasicMaterial({ color: 0xff2a0a, transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false }));
+  ring.rotation.x = -Math.PI / 2; ring.position.set(x, t.top + 0.06, z); m.position.set(x, t.top + 30, z); lvlObj.add(m); lvlObj.add(ring);
+  const t0 = 1.6 - Math.min(0.5, level * 0.05); bombs.push({ m, ring, x, z, ty: t.top, t: t0, t0, done: false });
+}
+
+// ---------- camera / loop ----------
+const camPos = new THREE.Vector3(0, 8, -10);
+let last = performance.now(), T = 0;
+function frame(now){
+  requestAnimationFrame(frame);
+  const dt = Math.min(0.05, (now - last) / 1000); last = now; T += dt;
+  if (state === 'play') update(dt, T);
+  if (state !== 'paused') {
+    updLava(T); updBursts(dt);
+    for (let i = 0; i < EMB; i++) { embPos[i*3+1] += embV[i] * dt; embPos[i*3] += Math.sin(T + i) * dt * 0.3; if (embPos[i*3+1] > 22) { embPos[i*3+1] = -3; embPos[i*3] = P.x + (Math.random() - 0.5) * 60; embPos[i*3+2] = P.z + (Math.random() - 0.3) * 60; } }
+    embGeo.attributes.position.needsUpdate = true;
+    if (state === 'title') { P.z += dt * 2; P.x = Math.sin(T * 0.3) * 3; P.y = 2; }
+    const portrait = camera.aspect < 0.8;
+    const target = new THREE.Vector3(P.x * 0.85, P.y + (portrait ? 10 : 7.5), P.z - (portrait ? 11 : 10));
+    camPos.lerp(target, 1 - Math.pow(0.02, dt));
+    camera.position.copy(camPos);
+    if (shake > 0) { shake -= dt; camera.position.x += (Math.random() - 0.5) * shake * 1.6; camera.position.y += (Math.random() - 0.5) * shake * 1.6; }
+    camera.lookAt(P.x * 0.9, P.y, P.z + 5);
+    sun.position.set(P.x - 15, P.y + 35, P.z - 8); sun.target.position.set(P.x, P.y, P.z);
+    lavaLight.position.set(P.x, -1, P.z + 4); lavaLight.intensity = 2.2 + Math.sin(T * 3) * 0.5;
+    if (banT > 0) { banT -= dt; if (banT <= 0) $('ban').style.opacity = 0; }
+  }
+  renderer.render(scene, camera);
+}
+buildLevel(0);
+requestAnimationFrame(frame);
+
+// ---------- input ----------
+addEventListener('keydown', e => {
+  if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
+  keys[e.code] = true;
+  if (e.code === 'Space' && state === 'play') P.jumpBuf = 0.15;
+  if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
+  if (e.code === 'KeyM') setMute(!muted);
+  if (e.code === 'Enter') { if (state === 'title') newGame(); else if (state === 'mid') startLevel(level + 1); }
+});
+addEventListener('keyup', e => { keys[e.code] = false; });
+$('startB').onclick = () => newGame();
+$('nextB').onclick = () => startLevel(level + 1);
+$('againB').onclick = () => { $('endO').classList.add('hidden'); newGame(); };
+$('resB').onclick = () => togglePause();
+$('pauseB').onclick = () => togglePause();
+$('muteB').onclick = () => setMute(!muted);
+$('hiLine').textContent = HI ? `Best score: ${HI.toLocaleString()}` : '';
+// touch joystick (pointer events, works with mouse too)
+const touchEl = $('touch'); if (mobile) touchEl.classList.add('on');
+addEventListener('touchstart', () => touchEl.classList.add('on'), { passive: true, once: true });
+let joyId = null; const joyEl = $('joy'), knob = $('knob');
+function joyMove(e){ const r = joyEl.getBoundingClientRect(); let dx = (e.clientX - r.left - r.width / 2) / (r.width / 2), dy = (e.clientY - r.top - r.height / 2) / (r.height / 2); const l = Math.hypot(dx, dy); if (l > 1) { dx /= l; dy /= l; }
+  joy.x = dx; joy.y = dy; knob.style.left = (45 + dx * 45) + 'px'; knob.style.top = (45 + dy * 45) + 'px'; }
+joyEl.addEventListener('pointerdown', e => { e.preventDefault(); joyId = e.pointerId; joyEl.setPointerCapture(e.pointerId); joyMove(e); });
+joyEl.addEventListener('pointermove', e => { if (e.pointerId === joyId) joyMove(e); });
+const joyEnd = e => { if (e.pointerId !== joyId) return; joyId = null; joy.x = joy.y = 0; knob.style.left = knob.style.top = '45px'; };
+joyEl.addEventListener('pointerup', joyEnd); joyEl.addEventListener('pointercancel', joyEnd);
+$('jumpB').addEventListener('pointerdown', e => { e.preventDefault(); if (state === 'play') P.jumpBuf = 0.15; });
+// mouse: click on the canvas to jump, right-drag not needed
+renderer.domElement.addEventListener('pointerdown', e => { if (e.pointerType === 'mouse' && state === 'play') P.jumpBuf = 0.15; });
+
+window.__autoPause = () => { if (state === 'play') togglePause(); };
+window.__mm = {
+  get state(){ return state; }, get level(){ return level; }, get score(){ return score; }, get lives(){ return lives; },
+  info(){ return { state, level, x: +P.x.toFixed(2), y: +P.y.toFixed(2), z: +P.z.toFixed(2), rescued, totalVil, tiles: tiles.length, timeLeft: Math.round(timeLeft), heat: Math.round(heat) }; },
+  goto(n){ initAudio(); if (state === 'title' || state === 'over' || state === 'won') { score = 0; lives = 5; } startLevel(clamp(n | 0, 0, 9)); return level; },
+  teleport(x, z){ const t = tileAt(x, z); P.x = x; P.z = z; P.y = (t ? t.top : 2) + 1; P.vx = P.vy = P.vz = 0; },
+  toVillager(k = 0){ const v = villagers.filter(v => v.alive)[k]; if (v) { P.x = v.g.position.x - 1.5; P.z = v.g.position.z; P.y = v.tile.top + 1; } },
+  toGoal(){ P.x = goal.x; P.z = goal.z - 3; P.y = goal.top + 1; },
+  rescueAll(){ villagers.forEach(v => { if (v.alive) { P.x = v.g.position.x; P.z = v.g.position.z; P.y = v.tile.top + 0.7; update(0.016, T); } }); },
+  invincible(){ P.inv = 9999; },
+};
+</script>
+</body>
+</html>
