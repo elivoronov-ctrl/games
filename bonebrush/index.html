@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bonebrush</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#2a1c14">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
+<link rel="icon" href="data:,">
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;touch-action:none;background:#2a1c14;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;
+  font-family:Georgia,"Times New Roman",serif;color:#f6ead2}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+input,textarea{font-size:max(16px,1em)!important;-webkit-user-select:text;user-select:text;touch-action:manipulation}
+button{touch-action:manipulation;font-family:inherit}
+.overlay{position:fixed;inset:0;padding:calc(16px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
+  display:flex;align-items:center;justify-content:center;box-sizing:border-box;background:rgba(20,12,8,.55);z-index:10}
+.hidden{display:none!important}
+.card{touch-action:pan-y;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;max-height:calc(100% - 8px);overflow:auto;
+  background:linear-gradient(#f3e4c4,#dcc49a);color:#3a2618;border:3px solid #7a4e2a;border-radius:14px;padding:16px 20px;max-width:600px;width:100%;box-sizing:border-box;text-align:center;box-shadow:0 10px 40px #000a,inset 0 0 30px #a0784a55}
+h1{margin:2px 0;font-size:clamp(40px,11vw,70px);color:#5a3418;text-shadow:0 2px 0 #f8ecd0,0 4px 0 #a0784a;line-height:1;letter-spacing:2px}
+h2{margin:6px 0;color:#6a3a18}
+p{margin:8px 0;line-height:1.45}
+.sub{color:#7a5434;font-style:italic}
+.how{text-align:left;font-size:14px;background:#fff6;border-radius:10px;padding:8px 12px;margin:10px 0;font-family:system-ui,sans-serif}
+.how b{color:#8a3a10}
+.btn{background:linear-gradient(#e0803a,#b04e1a);color:#fff4e0;border:none;border-radius:12px;padding:12px 26px;font-size:19px;font-weight:bold;margin:8px 6px;cursor:pointer;box-shadow:0 4px 0 #6a2a08;min-height:48px;font-family:system-ui,sans-serif}
+.btn.alt{background:linear-gradient(#8aa0a8,#4e6470);box-shadow:0 4px 0 #2a3a40}
+#topBtns{position:fixed;top:calc(8px + env(safe-area-inset-top));right:calc(8px + env(safe-area-inset-right));z-index:6;display:flex;gap:8px}
+#topBtns button{min-width:48px;min-height:48px;border-radius:12px;border:2px solid #e0b070aa;background:#2a1c14cc;color:#f0c070;font-size:22px;cursor:pointer}
+#tools{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(8px + env(safe-area-inset-bottom));z-index:6;display:flex;gap:8px}
+#tools button{min-width:84px;min-height:60px;border-radius:12px;border:3px solid #7a4e2a;background:linear-gradient(#f3e4c4,#d4b88a);color:#3a2618;font-size:14px;font-weight:bold;cursor:pointer;font-family:system-ui,sans-serif;line-height:1.15;padding:4px 8px}
+#tools button.sel{border-color:#ffd060;background:linear-gradient(#ffe6a0,#f0b050);box-shadow:0 0 14px #ffd060}
+#tools button small{display:block;font-weight:normal;font-size:11px;color:#6a4a2a}
+#tools button .ic{font-size:20px;display:block}
+.story{display:flex;gap:14px;align-items:flex-start;text-align:left;margin:10px 0;min-height:110px}
+.story canvas{position:static;width:84px;height:84px;flex:none;border-radius:50%;border:3px solid #7a4e2a;background:#e8d4b0}
+.story .who{font-weight:bold;color:#8a3a10;font-family:system-ui,sans-serif;font-size:14px;letter-spacing:1px}
+.story .line{font-size:17px;line-height:1.45;margin-top:4px}
+.stars{font-size:40px;color:#e09a20;letter-spacing:6px;text-shadow:0 2px 0 #7a4e2a}
+.stars .off{color:#b8a080}
+table.st{margin:6px auto;border-collapse:collapse;font-size:15px;font-family:system-ui,sans-serif}
+table.st td{padding:2px 10px}
+table.st td:last-child{text-align:right;font-weight:bold;color:#8a3a10}
+.chap{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;margin:8px 0}
+.chap button{min-height:48px;border-radius:10px;border:2px solid #7a4e2a;background:#fff8;color:#3a2618;font-family:system-ui,sans-serif;font-size:13px;cursor:pointer}
+.chap button:disabled{opacity:.4}
+@media (max-height:500px) and (orientation:landscape){#tools button{min-height:48px;min-width:96px;padding:2px 6px;font-size:13px}#tools button .ic{display:inline;font-size:16px}#tools button small{font-size:10px}.card{padding:10px 16px}h1{font-size:36px}.how{font-size:12px;padding:6px 10px}.btn{padding:8px 20px;font-size:17px;margin:4px}.story{min-height:90px}}
+</style>
+<script>
+/* iOS / touch hardening: audio unlock+resume, no zoom/scroll, safe-area insets, rotation resize */
+(function(){
+  var ctxs = [], AC = window.AudioContext || window.webkitAudioContext;
+  if (AC) { var Wr = function(o){ var x = o ? new AC(o) : new AC(); ctxs.push(x); return x; }; Wr.prototype = AC.prototype; window.AudioContext = Wr; if (window.webkitAudioContext) window.webkitAudioContext = Wr; }
+  function resume(){ if (window.__canResumeAudio && !window.__canResumeAudio()) return; ctxs.forEach(function(x){ if (x.state !== 'running' && x.state !== 'closed') { try { var p = x.resume(); if (p && p.catch) p.catch(function(){}); } catch(e){} } }); }
+  ['touchend','pointerup','click','keydown'].forEach(function(ev){ addEventListener(ev, resume, true); });
+  document.addEventListener('visibilitychange', function(){ if (document.hidden) { try { window.__autoPause && window.__autoPause(); } catch(e){} } else resume(); });
+  addEventListener('pagehide', function(){ try { window.__autoPause && window.__autoPause(); } catch(e){} });
+  document.addEventListener('gesturestart', function(e){ e.preventDefault(); }, {passive:false});
+  document.addEventListener('dblclick', function(e){ e.preventDefault(); }, {passive:false});
+  document.addEventListener('touchmove', function(e){ var t = e.target; if (t && t.closest && t.closest('.card,input,textarea')) return; if (e.cancelable) e.preventDefault(); }, {passive:false});
+  window.SAFE = {t:0, r:0, b:0, l:0};
+  var probe = null;
+  function readSafe(){ if (!probe && document.body) { probe = document.createElement('div'); probe.style.cssText = 'position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)'; document.body.appendChild(probe); }
+    if (probe) { var s = getComputedStyle(probe); SAFE.t = parseFloat(s.paddingTop)||0; SAFE.r = parseFloat(s.paddingRight)||0; SAFE.b = parseFloat(s.paddingBottom)||0; SAFE.l = parseFloat(s.paddingLeft)||0; } }
+  document.addEventListener('DOMContentLoaded', readSafe); addEventListener('resize', readSafe);
+  var rt = 0; function kick(){ clearTimeout(rt); rt = setTimeout(function(){ readSafe(); dispatchEvent(new Event('resize')); }, 250); }
+  addEventListener('orientationchange', kick);
+  if (window.visualViewport) visualViewport.addEventListener('resize', function(){ if (Math.abs(visualViewport.height - innerHeight) > 1 || Math.abs(visualViewport.width - innerWidth) > 1) kick(); });
+})();
+</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="topBtns" class="hidden"><button id="pauseB" aria-label="Pause">⏸</button><button id="muteB" aria-label="Mute">♪</button></div>
+<div id="tools" class="hidden">
+  <button id="t0" class="sel"><span class="ic">🖌</span>BRUSH<small>1 layer · 1 ⚡</small></button>
+  <button id="t1"><span class="ic">⛏</span>PICK<small>all layers · 2 ⚡</small></button>
+  <button id="t2"><span class="ic">📡</span>SCAN<small id="scanS">3 left</small></button>
+</div>
+
+<div id="title" class="overlay"><div class="card">
+  <h1>BONEBRUSH</h1>
+  <p class="sub">A paleontology mystery in six dig sites.</p>
+  <div class="how">
+    <b>Uncover every fossil bone</b> hidden in the dig grid before your stamina ⚡ runs out.<br>
+    <b>🖌 Brush</b> removes one soil layer (1 ⚡). Safe for bones.<br>
+    <b>⛏ Pick</b> clears a whole tile at once (2 ⚡), but <b>cracks</b> any bone underneath.<br>
+    <b>📡 Scan</b> shows how many bones hide in a 3×3 area. Limited charges.<br>
+    Dug-out empty tiles show a <b>number</b>: how many bone tiles touch it (including diagonals). Fossils are connected shapes, so follow the bones. Darker soil means more layers. Amber gives back stamina.<br>
+    <b>Keys:</b> Arrows/WASD move · Space/Enter dig · 1/2/3 or Q/E tools · P/Esc pause · M mute.<br><b>Mouse/touch:</b> pick a tool, tap a tile.
+  </div>
+  <div id="hiT" class="sub"></div>
+  <button class="btn" id="startB">NEW EXPEDITION</button><button class="btn alt hidden" id="contB">CONTINUE</button>
+  <div class="chap" id="chapSel"></div>
+</div></div>
+<div id="storyO" class="overlay hidden"><div class="card">
+  <div class="sub" id="stHead">Chapter 1</div>
+  <div class="story"><canvas id="face" width="84" height="84"></canvas><div><div class="who" id="stWho"></div><div class="line" id="stLine"></div></div></div>
+  <button class="btn" id="stNext">NEXT ▸</button>
+</div></div>
+<div id="done" class="overlay hidden"><div class="card">
+  <h2 id="dnTitle">DIG COMPLETE</h2><div class="stars" id="dnStars"></div><table class="st" id="dnTable"></table>
+  <button class="btn" id="dnNext">CONTINUE</button><button class="btn alt" id="dnRetry">REDIG FOR STARS</button>
+</div></div>
+<div id="over" class="overlay hidden"><div class="card">
+  <h2>OUT OF STAMINA</h2><p id="ovMsg">Ada slumps against the pit wall. The rest of the fossil stays buried... for now.</p>
+  <button class="btn" id="retryB">TRY THIS DIG AGAIN</button><button class="btn alt" id="menuB">TITLE</button>
+</div></div>
+<div id="win" class="overlay hidden"><div class="card">
+  <h1 style="font-size:clamp(30px,8vw,50px)">THE DRAGON BED</h1>
+  <p>Every bone is catalogued and the museum doors open to the public. Baron Vellum gets a lifetime pass... to the gift shop.</p>
+  <p class="sub" id="wnScore"></p>
+  <button class="btn" id="againB">TITLE</button>
+</div></div>
+<div id="pause" class="overlay hidden"><div class="card"><h2>PAUSED</h2><p class="sub">The fossils have waited 70 million years. They can wait a bit more.</p><button class="btn" id="resumeB">RESUME</button><button class="btn alt" id="quitB">QUIT TO TITLE</button></div></div>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const cv = $('c'), ctx = cv.getContext('2d');
+let W = 0, H = 0, DPR = 1;
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const rnd = (a = 0, b = 1) => a + Math.random() * (b - a);
+const store = { get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
+function resize() { DPR = Math.min(devicePixelRatio || 1, 2); W = innerWidth; H = innerHeight; cv.width = W * DPR; cv.height = H * DPR; layout(); }
+
+// ---------- content ----------
+const SHAPES = {
+  'Trilobite': ['.X.', 'XXX', 'XXX', '.X.'],
+  'Ammonite': ['XXX', 'X.X', 'XX.'],
+  'Raptor Claw': ['X..', 'XX.', '.XX', '..X'],
+  'Fish': ['.X..X', 'XXXX.', '.X..X'],
+  'Horned Skull': ['X..X', 'XXXX', '.XX.'],
+  'Sea Lizard': ['XX...', '.XXX.', '...XX'],
+  'Wing': ['X...X', '.X.X.', '..X..'],
+  'Long Neck': ['X...', '.X..', '.XXX', '.XXX', '.X.X'],
+  'Tail Club': ['XXXX.', '...XX', '...XX'],
+  'Dragon': ['X.....', 'XX....', '.XXX..', '..XXXX', '..X.XX', '..X..X'],
+};
+const PEOPLE = {
+  Ada: { name: 'DR. ADA MARL', skin: '#c88a5a', hair: '#3a2214', hat: '#b08a4a', acc: '#6a8a5a' },
+  Pip: { name: 'PIP (SURVEY DRONE)', robot: true, col: '#5ac0d0' },
+  Baron: { name: 'BARON VELLUM', skin: '#e8c4a0', hair: '#d8d8d8', hat: '#2a2a3a', acc: '#8a1a2a', mono: true },
+  Juno: { name: 'JUNO, THE DIVER', skin: '#8a5a3a', hair: '#1a1a2a', hat: '#2a6a8a', acc: '#e0a030' },
+};
+const CH = [
+  { name: 'Badlands Gully', soil: ['#e0b080', '#c48a58', '#9a6438', '#6a4024'], floor: '#4a3020', sky: ['#f8c87a', '#e07a4a'], land: '#b06a3a',
+    intro: [['Ada', 'Badlands Gully. Seventy million years of dust, and somewhere under it... our first fossil.'], ['Pip', 'BEEP. Survey complete. I have pre-cleared a few tiles. Numbers show how many bone tiles touch each cleared square.'], ['Ada', 'Brush where bones might be, pick where they surely are not. A cracked fossil is a sad fossil.']],
+    digs: [{ w: 7, h: 7, f: ['Trilobite'], amber: 1, scans: 3, slack: 1.15 }, { w: 7, h: 7, f: ['Raptor Claw'], amber: 1, scans: 3, slack: 1.1 }],
+    outro: [['Baron', 'Charming little claw. I collect those. Name your price, Doctor.'], ['Ada', 'It goes to the museum, Baron. Everything does.'], ['Pip', 'BEEP. The claw has scratches. Not tooth marks. ...A map?']] },
+  { name: 'Amber Coast', soil: ['#f0d8a0', '#d8b070', '#b08850', '#7a5a34'], floor: '#3a2a1a', sky: ['#9ad8f0', '#f0c890'], land: '#e0c080',
+    intro: [['Juno', 'You must be Ada! The tide uncovered something by the cliffs. I can hold the boat for two digs.'], ['Ada', 'Amber everywhere. Each nugget is a burst of energy, Pip, if we find them.'], ['Pip', 'BEEP. Amber returns 3 stamina. Also: shiny.']],
+    digs: [{ w: 8, h: 7, f: ['Ammonite', 'Fish'], amber: 3, scans: 3, slack: 1.05 }, { w: 8, h: 8, f: ['Sea Lizard', 'Trilobite'], amber: 3, scans: 3, slack: 1.0 }],
+    outro: [['Juno', 'A sea lizard! And look at its spine: the same scratches as your claw.'], ['Ada', 'Two pieces of the same map. Someone carved directions into these bones long ago.'], ['Baron', '(from a yacht, through a megaphone) I SAW THAT!']] },
+  { name: 'Frozen Cliffs', soil: ['#e8f4fa', '#b8d4e4', '#8aa8c0', '#5a7690'], floor: '#24323e', sky: ['#c8e0f0', '#7a9ab8'], land: '#e8f0f6', ice: .3,
+    intro: [['Ada', 'The map points north. Frozen Cliffs. Blue tiles are ice, one layer deeper than they look.'], ['Pip', 'BEEP. My scanner is cold. Fewer charges. Please do not pick-axe my feelings.']],
+    digs: [{ w: 8, h: 8, f: ['Horned Skull', 'Wing'], amber: 2, scans: 2, slack: 1.0 }, { w: 8, h: 8, f: ['Long Neck'], amber: 2, scans: 2, slack: .98 }],
+    outro: [['Ada', 'A long neck, pointing southwest like a compass needle.'], ['Baron', 'Doctor! My helicopter is warm and my checkbook is warmer.'], ['Ada', 'And my thermos is full. Goodbye, Baron.']] },
+  { name: 'Tar Pits', soil: ['#7a6a5a', '#5a4a3a', '#3e3228', '#2a201a'], floor: '#1a1410', sky: ['#e8b070', '#8a5a5a'], land: '#5a4a3a', tar: .22,
+    intro: [['Pip', 'BEEP. Warning: sticky. Black tar tiles cost double to brush and 3 to pick.'], ['Ada', 'Animals got trapped here for ages. Which means bones. Many, many bones.']],
+    digs: [{ w: 9, h: 8, f: ['Tail Club', 'Raptor Claw'], amber: 3, scans: 3, slack: 1.0 }, { w: 9, h: 9, f: ['Horned Skull', 'Fish', 'Ammonite'], amber: 3, scans: 3, slack: .97 }],
+    outro: [['Ada', "Someone else has been digging here. Fresh shovel marks."], ['Juno', 'The Baron hired a crew. He is heading for the quarry.'], ['Ada', 'Then so are we. Faster.']] },
+  { name: 'Sunken Quarry', soil: ['#b8b0a0', '#948a78', '#706654', '#4a4236'], floor: '#24201a', sky: ['#a0b0c0', '#6a7080'], land: '#8a8070', rock: 5,
+    intro: [['Pip', 'BEEP. Gray boulders block the brush. Only the pick can break them, and they never hold bones.'], ['Baron', 'Too late, Doctor! My crew has... hmm. My crew has dug in entirely the wrong place.'], ['Ada', 'Numbers, Baron. You have to read the numbers.']],
+    digs: [{ w: 9, h: 9, f: ['Long Neck', 'Wing'], amber: 2, scans: 3, slack: .98 }, { w: 9, h: 9, f: ['Sea Lizard', 'Tail Club', 'Trilobite'], amber: 3, scans: 3, slack: .96 }],
+    outro: [['Ada', 'The last map piece. Every scratch lines up: the Dragon Bed is right under the old Badlands Gully.'], ['Baron', '...Would you, perhaps, let me hold a brush?'], ['Ada', 'Everyone digs on my site, Baron. Even you. Bring snacks.']] },
+  { name: 'The Dragon Bed', soil: ['#e8a870', '#c47a48', '#9a5030', '#6a2a1a'], floor: '#3a1a10', sky: ['#f0a060', '#8a3a4a'], land: '#a04a2a', ice: .1, tar: .1, rock: 4,
+    intro: [['Pip', 'BEEP. Bone density off the charts. Something enormous is down here.'], ['Ada', 'Ice, tar and boulders all in one pit. This is the dig of my life. Steady hands, everyone.']],
+    digs: [{ w: 10, h: 9, f: ['Dragon', 'Ammonite'], amber: 3, scans: 3, slack: .97 }, { w: 10, h: 10, f: ['Dragon', 'Wing', 'Horned Skull'], amber: 4, scans: 4, slack: .95 }],
+    outro: [['Ada', 'Not a dragon. A whole family of feathered giants, curled up together.'], ['Juno', 'The scratches were made by the first people who found them, thousands of years ago.'], ['Baron', 'I... I may donate the yacht to the museum. For transport. Of bones.'], ['Pip', 'BEEP. Expedition complete. Recommending: a very long nap.']] },
+];
+
+// ---------- audio ----------
+let AC = null, master, muted = store.get('bb_mute', false), noiseBuf = null;
+function initAudio() {
+  if (AC) return;
+  try { AC = new (window.AudioContext || window.webkitAudioContext)(); master = AC.createGain(); master.gain.value = muted ? 0 : .6; master.connect(AC.destination);
+    noiseBuf = AC.createBuffer(1, AC.sampleRate, AC.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  } catch (e) { AC = null; }
+}
+function tone(f, d, type = 'sine', vol = .15, slide = 0, delay = 0) {
+  if (!AC) return; const t = AC.currentTime + delay, o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t); if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(20, f + slide), t + d);
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + d); o.connect(g).connect(master); o.start(t); o.stop(t + d + .02);
+}
+function nz(d, vol, f = 2000, type = 'bandpass') { if (!AC) return; const t = AC.currentTime, s = AC.createBufferSource(), fl = AC.createBiquadFilter(), g = AC.createGain(); s.buffer = noiseBuf; fl.type = type; fl.frequency.value = f; g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + d); s.connect(fl).connect(g).connect(master); s.start(t, Math.random() * .5); s.stop(t + d); }
+const sfx = {
+  brush() { nz(.18, .25, rnd(2500, 4000)); },
+  pick() { tone(1400, .08, 'square', .1, -600); nz(.12, .3, 900); },
+  bone(n = 0) { tone(523 * Math.pow(1.122, n % 8), .3, 'triangle', .2); tone(1046 * Math.pow(1.122, n % 8), .2, 'sine', .07, 0, .02); },
+  crack() { nz(.3, .45, 600, 'lowpass'); tone(180, .25, 'sawtooth', .12, -100); },
+  amber() { [988, 1318, 1760].forEach((f, i) => tone(f, .2, 'sine', .12, 0, i * .06)); },
+  scan() { tone(400, .35, 'sine', .12, 800); },
+  deny() { tone(160, .15, 'square', .08); },
+  fossil() { [523, 659, 784, 1046, 784, 1046].forEach((f, i) => tone(f, .22, 'triangle', .16, 0, i * .09)); },
+  lose() { [392, 349, 311, 262].forEach((f, i) => tone(f, .35, 'triangle', .14, 0, i * .2)); },
+  page() { tone(660, .06, 'sine', .06); },
+};
+function setMute(m) { muted = m; store.set('bb_mute', m); if (master) master.gain.value = m ? 0 : .6; $('muteB').textContent = m ? '🔇' : '♪'; }
+
+// ---------- state ----------
+let state = 'title', ch = 0, dg = 0, score = 0, digScore = 0, tool = 0, stamina = 0, staminaMax = 0, scans = 0, cracks = 0, amberGot = 0;
+let grid = [], GW = 7, GH = 7, fossils = [], cur = { c: 3, r: 3 }, parts = [], shake = 0, banner = null, finishT = 0, startStam = 0;
+let best = store.get('bb_best', 0), progress = store.get('bb_prog', { ch: 0, dg: 0 }), starsRec = store.get('bb_stars', {});
+let BX = 0, BY = 0, CS = 40, story = null, t = 0;
+
+function rotShape(rows, rot, mir) {
+  let cells = []; rows.forEach((row, y) => [...row].forEach((c, x) => { if (c === 'X') cells.push([x, y]); }));
+  for (let i = 0; i < rot; i++) cells = cells.map(([x, y]) => [-y, x]);
+  if (mir) cells = cells.map(([x, y]) => [-x, y]);
+  const mx = Math.min(...cells.map(c => c[0])), my = Math.min(...cells.map(c => c[1]));
+  return cells.map(([x, y]) => [x - mx, y - my]);
+}
+function genDig(C, D) {
+  for (let attempt = 0; attempt < 400; attempt++) {
+    GW = D.w; GH = D.h; grid = [];
+    for (let r = 0; r < GH; r++) for (let c = 0; c < GW; c++) {
+      const roll = Math.random(); let d = roll < .35 ? 1 : roll < .8 ? 2 : 3;
+      grid.push({ c, r, d, max: d, bone: -1, amber: false, kind: 'soil', cracked: false, scan: -1, flash: 0 });
+    }
+    fossils = []; let ok = true;
+    for (const name of D.f) {
+      let placed = false;
+      for (let k = 0; k < 200 && !placed; k++) {
+        const cells = rotShape(SHAPES[name], Math.floor(Math.random() * 4), Math.random() < .5);
+        const sw = Math.max(...cells.map(c => c[0])) + 1, sh = Math.max(...cells.map(c => c[1])) + 1;
+        if (sw > GW || sh > GH) continue;
+        const ox = Math.floor(Math.random() * (GW - sw + 1)), oy = Math.floor(Math.random() * (GH - sh + 1));
+        const abs = cells.map(([x, y]) => [x + ox, y + oy]);
+        const clash = abs.some(([x, y]) => { for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const g = cell(x + dx, y + dy); if (g && g.bone >= 0) return true; } return false; });
+        if (clash) continue;
+        const fi = fossils.length; fossils.push({ name, cells: abs, done: false });
+        for (const [x, y] of abs) cell(x, y).bone = fi;
+        placed = true;
+      }
+      if (!placed) { ok = false; break; }
+    }
+    if (!ok) continue;
+    const free = grid.filter(g => g.bone < 0);
+    for (const g of free) if (C.ice && Math.random() < C.ice) { g.kind = 'ice'; g.d = g.max = Math.min(4, g.d + 1); }
+    for (const g of grid) if (g.bone >= 0 && C.ice && Math.random() < C.ice) { g.kind = 'ice'; g.d = g.max = Math.min(4, g.d + 1); }
+    for (const g of grid) if (g.kind === 'soil' && C.tar && Math.random() < C.tar) g.kind = 'tar';
+    if (C.rock) { const fr = free.filter(g => g.kind === 'soil'); for (let i = 0; i < C.rock && fr.length; i++) { const g = fr.splice(Math.floor(Math.random() * fr.length), 1)[0]; g.kind = 'rock'; g.d = g.max = 1; } }
+    const fa = free.filter(g => g.kind !== 'rock'); for (let i = 0; i < D.amber && fa.length; i++) { fa.splice(Math.floor(Math.random() * fa.length), 1)[0].amber = true; }
+    // survey: pre-expose a few empty tiles, preferring ones with a nonzero hint
+    const cand = free.filter(g => g.kind !== 'rock' && !g.amber);
+    cand.sort(() => Math.random() - .5);
+    const pre = Math.round(GW * GH / 14); let n = 0;
+    for (const g of cand) { if (n >= pre) break; if (hint(g) > 0 || n >= pre - 1) { g.d = 0; n++; } }
+    // stamina budget
+    let need = 0;
+    for (const g of grid) if (g.bone >= 0) need += g.d * (g.kind === 'tar' ? 2 : 1);
+    const empt = grid.filter(g => g.bone < 0 && g.d > 0);
+    let ecost = 0; for (const g of empt) ecost += g.kind === 'tar' ? 3 : g.kind === 'rock' ? 2 : Math.min(g.d, 2);
+    staminaMax = Math.round((need + ecost * .5 + 6) * D.slack);
+    return;
+  }
+}
+const cell = (c, r) => (c >= 0 && r >= 0 && c < GW && r < GH) ? grid[r * GW + c] : null;
+function hint(g) { let n = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { if (!dx && !dy) continue; const o = cell(g.c + dx, g.r + dy); if (o && o.bone >= 0) n++; } return n; }
+function scanCount(g) { let n = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const o = cell(g.c + dx, g.r + dy); if (o && o.bone >= 0) n++; } return n; }
+
+function startDig(c, d) {
+  ch = c; dg = d; const C = CH[c], D = C.digs[d];
+  genDig(C, D); stamina = staminaMax; startStam = staminaMax; scans = D.scans; cracks = 0; amberGot = 0; digScore = 0; finishT = 0; parts = []; banner = null;
+  cur = { c: Math.floor(GW / 2), r: Math.floor(GH / 2) };
+  state = 'play'; showOnly(null); hudOn(true); setTool(0); layout();
+  showBanner(`${C.name} · Dig ${d + 1}/2`, 1.8);
+}
+function useTool(c, r) {
+  if (state !== 'play' || finishT > 0) return;
+  const g = cell(c, r); if (!g) return; cur = { c, r };
+  const C = CH[ch];
+  if (tool === 2) {
+    if (scans <= 0) { sfx.deny(); showBanner('No scans left', 1); return; }
+    if (g.scan >= 0) { sfx.deny(); return; }
+    scans--; g.scan = scanCount(g); sfx.scan(); g.flash = 1;
+    for (let i = 0; i < 14; i++) spawnPart(g, '#7ae0f0', 1.2);
+    updTools(); return;
+  }
+  if (g.d <= 0) { sfx.deny(); return; }
+  if (tool === 0) {
+    if (g.kind === 'rock') { sfx.deny(); showBanner('Too hard! Use the pick.', 1.1); return; }
+    const cost = g.kind === 'tar' ? 2 : 1;
+    if (stamina < cost) { sfx.deny(); return; }
+    stamina -= cost; g.d--; sfx.brush();
+    for (let i = 0; i < 8; i++) spawnPart(g, C.soil[Math.min(3, g.max - g.d - 1)] || C.soil[0], .8);
+  } else {
+    const cost = g.kind === 'tar' ? 3 : 2;
+    if (stamina < cost) { sfx.deny(); return; }
+    stamina -= cost; g.d = 0; sfx.pick(); shake = .25;
+    for (let i = 0; i < 16; i++) spawnPart(g, C.soil[1], 1.6);
+    if (g.bone >= 0) { g.cracked = true; cracks++; sfx.crack(); shake = .5; showBanner('CRACK! Bone damaged', 1.1); }
+  }
+  if (g.d === 0) reveal(g);
+  if (finishT === 0 && stamina <= 0 && !allDone()) setTimeout(() => { if (state === 'play' && !allDone() && stamina <= 0) lose(); }, 700);
+}
+function reveal(g) {
+  g.flash = 1;
+  if (g.bone >= 0) {
+    const f = fossils[g.bone]; const found = f.cells.filter(([x, y]) => cell(x, y).d === 0).length;
+    if (!g.cracked) sfx.bone(found);
+    digScore += g.cracked ? 10 : 50; for (let i = 0; i < 12; i++) spawnPart(g, '#fff4d8', 1.4);
+    if (found === f.cells.length && !f.done) {
+      f.done = true; digScore += 250; setTimeout(() => sfx.fossil(), 150);
+      showBanner(`${f.name.toUpperCase()} UNEARTHED!`, 1.8);
+      for (const [x, y] of f.cells) { const c = cell(x, y); c.flash = 1.5; for (let i = 0; i < 6; i++) spawnPart(c, '#ffd060', 2); }
+      if (allDone()) finishT = 1.6;
+    }
+  } else if (g.amber) {
+    g.amber = false; amberGot++; stamina += 3; startStam += 3; digScore += 100; sfx.amber();
+    for (let i = 0; i < 16; i++) spawnPart(g, '#ffa020', 1.8); showBanner('+3 ⚡ AMBER', 1);
+  }
+}
+const allDone = () => fossils.every(f => f.done);
+function finish() {
+  const bones = fossils.reduce((a, f) => a + f.cells.length, 0);
+  const stamBonus = stamina * 20, intact = cracks === 0 ? 300 : 0;
+  const total = digScore + stamBonus + intact; score += total;
+  const stars = 1 + (cracks === 0 ? 1 : 0) + (stamina >= startStam * .2 ? 1 : 0);
+  const key = ch + '-' + dg; starsRec[key] = Math.max(starsRec[key] || 0, stars); store.set('bb_stars', starsRec);
+  let nc = ch, nd = dg + 1; if (nd > 1) { nc++; nd = 0; }
+  if (nc < CH.length && (nc > progress.ch || (nc === progress.ch && nd > progress.dg))) { progress = { ch: nc, dg: nd }; store.set('bb_prog', progress); }
+  if (score > best) { best = score; store.set('bb_best', best); }
+  $('dnTitle').textContent = `${CH[ch].name.toUpperCase()} · DIG ${dg + 1} COMPLETE`;
+  $('dnStars').innerHTML = [0, 1, 2].map(i => `<span class="${i < stars ? '' : 'off'}">★</span>`).join('');
+  $('dnTable').innerHTML = `<tr><td>Bones uncovered (${bones})</td><td>${digScore - amberGot * 100}</td></tr><tr><td>Amber (${amberGot})</td><td>${amberGot * 100}</td></tr><tr><td>Stamina left (${stamina} ⚡)</td><td>${stamBonus}</td></tr><tr><td>No cracks bonus</td><td>${intact}</td></tr><tr><td><b>Expedition score</b></td><td>${score}</td></tr>`;
+  state = 'done'; showOnly('done'); hudOn(false);
+}
+function lose() { state = 'over'; showOnly('over'); hudOn(false); sfx.lose(); }
+function afterDig() {
+  if (dg === 0) startDig(ch, 1);
+  else playStory(CH[ch].outro, `Chapter ${ch + 1} · ${CH[ch].name}`, () => {
+    if (ch + 1 >= CH.length) { state = 'win'; showOnly('win'); $('wnScore').textContent = `Final score ${score} · Best ${best}`; sfx.fossil(); }
+    else beginChapter(ch + 1);
+  });
+}
+function beginChapter(c) { ch = c; playStory(CH[c].intro, `Chapter ${c + 1} · ${CH[c].name}`, () => startDig(c, 0)); }
+
+// ---------- story ----------
+function playStory(lines, head, done) {
+  story = { lines, i: 0, done }; state = 'story'; showOnly('storyO'); hudOn(false); $('stHead').textContent = head; showLine();
+}
+function showLine() { const [who, txt] = story.lines[story.i]; $('stWho').textContent = PEOPLE[who].name; $('stLine').textContent = txt; drawFace(who); $('stNext').textContent = story.i < story.lines.length - 1 ? 'NEXT ▸' : 'TO THE DIG ▸'; }
+function nextLine() { if (state !== 'story') return; sfx.page(); story.i++; if (story.i >= story.lines.length) { const d = story.done; story = null; d(); } else showLine(); }
+function drawFace(who) {
+  const g = $('face').getContext('2d'), P = PEOPLE[who]; g.clearRect(0, 0, 84, 84);
+  g.fillStyle = '#e8d4b0'; g.fillRect(0, 0, 84, 84);
+  if (P.robot) {
+    g.fillStyle = '#3a4a52'; g.fillRect(14, 40, 56, 6); g.fillStyle = P.col; g.beginPath(); g.ellipse(42, 44, 22, 16, 0, 0, 7); g.fill();
+    g.fillStyle = '#1a2a30'; g.beginPath(); g.ellipse(42, 44, 14, 9, 0, 0, 7); g.fill(); g.fillStyle = '#9ff4ff'; g.beginPath(); g.arc(42 + Math.sin(t * 3) * 4, 44, 5, 0, 7); g.fill();
+    g.strokeStyle = '#3a4a52'; g.lineWidth = 3; g.beginPath(); g.moveTo(42, 28); g.lineTo(42, 16); g.stroke(); g.fillStyle = '#ff6a4a'; g.beginPath(); g.arc(42, 14, 4, 0, 7); g.fill();
+    g.fillStyle = '#5a6a72'; g.fillRect(8, 22, 20, 5); g.fillRect(56, 22, 20, 5); return;
+  }
+  g.fillStyle = P.acc; g.beginPath(); g.ellipse(42, 92, 34, 26, 0, 0, 7); g.fill();
+  g.fillStyle = P.hair; g.beginPath(); g.ellipse(42, 42, 22, 26, 0, 0, 7); g.fill();
+  g.fillStyle = P.skin; g.beginPath(); g.ellipse(42, 46, 17, 20, 0, 0, 7); g.fill();
+  g.fillStyle = '#2a1a10'; g.beginPath(); g.arc(35, 45, 2.4, 0, 7); g.arc(49, 45, 2.4, 0, 7); g.fill();
+  g.strokeStyle = '#7a3a2a'; g.lineWidth = 2; g.beginPath(); g.arc(42, 53, 6, .2, Math.PI - .2); g.stroke();
+  if (P.mono) { g.strokeStyle = '#c8a040'; g.lineWidth = 2; g.beginPath(); g.arc(49, 45, 6, 0, 7); g.stroke(); g.fillStyle = P.hair; g.fillRect(30, 54, 24, 4); }
+  g.fillStyle = P.hat; g.beginPath(); g.ellipse(42, 28, 30, 7, 0, 0, 7); g.fill(); g.beginPath(); g.ellipse(42, 22, 18, 12, 0, Math.PI, 0); g.fill();
+}
+
+// ---------- particles / banner ----------
+function spawnPart(g, col, sp) { const x = BX + (g.c + .5) * CS, y = BY + (g.r + .5) * CS; parts.push({ x, y, vx: rnd(-1, 1) * 120 * sp, vy: rnd(-1.4, .2) * 120 * sp, life: rnd(.4, .9), col, s: rnd(2, 4.5) }); }
+function showBanner(txt, dur) { banner = { txt, t: dur, max: dur }; }
+
+// ---------- layout & draw ----------
+let HUDH = 64, TOOLH = 84;
+function layout() {
+  const sl = SAFE.l, sr = SAFE.r, st = SAFE.t, sb = SAFE.b;
+  const land = W > H && H < 500;
+  const narrow = W - sl - sr < 600;
+  HUDH = land ? 50 : narrow ? 92 : 70; TOOLH = land ? 0 : 84;
+  const sideW = land ? 110 : 0;
+  const aw = W - sl - sr - 16 - sideW, ah = H - st - sb - HUDH - TOOLH - 16;
+  CS = Math.floor(Math.max(16, Math.min(aw / GW, ah / GH, 72)));
+  BX = Math.floor(sl + 8 + (aw - CS * GW) / 2); BY = Math.floor(st + HUDH + 8 + (ah - CS * GH) / 2);
+  const tb = $('tools');
+  if (land) { tb.style.flexDirection = 'column'; tb.style.left = 'auto'; tb.style.right = `calc(8px + env(safe-area-inset-right))`; tb.style.transform = 'none'; tb.style.bottom = `calc(8px + env(safe-area-inset-bottom))`; }
+  else { tb.style.flexDirection = 'row'; tb.style.left = '50%'; tb.style.right = 'auto'; tb.style.transform = 'translateX(-50%)'; }
+}
+function shade(hex, k) { const n = parseInt(hex.slice(1), 16); let r = n >> 16, g = n >> 8 & 255, b = n & 255; r = clamp(r * k, 0, 255) | 0; g = clamp(g * k, 0, 255) | 0; b = clamp(b * k, 0, 255) | 0; return `rgb(${r},${g},${b})`; }
+const HC = ['', '#2a6ad0', '#2a9a3a', '#d03a2a', '#7a2ab0', '#b06a00', '#0a8a8a', '#333', '#888'];
+function drawBackdrop(C) {
+  const g = ctx; const gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, C.sky[0]); gr.addColorStop(.55, C.sky[1]); gr.addColorStop(.56, C.land); gr.addColorStop(1, shade(C.land, .6));
+  g.fillStyle = gr; g.fillRect(0, 0, W, H);
+  g.fillStyle = shade(C.land, .8);
+  for (let i = 0; i < 6; i++) { const x = (i * 0.21 + .05) * W, w = W * .16, h = H * (.08 + (i % 3) * .05); g.beginPath(); g.moveTo(x - w * .3, H * .56); g.lineTo(x, H * .56 - h); g.lineTo(x + w, H * .56 - h); g.lineTo(x + w * 1.3, H * .56); g.fill(); }
+  g.fillStyle = 'rgba(255,240,200,.5)'; g.beginPath(); g.arc(W * .8, H * .18, Math.min(W, H) * .07, 0, 7); g.fill();
+}
+function draw(dt) {
+  const C = CH[ch];
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  drawBackdrop(C);
+  if (state === 'title' || state === 'story') { drawTitleArt(); return; }
+  ctx.save();
+  if (shake > 0) ctx.translate(rnd(-1, 1) * shake * 10, rnd(-1, 1) * shake * 10);
+  // pit frame
+  const pad = Math.max(6, CS * .25);
+  ctx.fillStyle = '#5a3a20'; roundRect(BX - pad, BY - pad, CS * GW + pad * 2, CS * GH + pad * 2, 10); ctx.fill();
+  ctx.fillStyle = C.floor; ctx.fillRect(BX, BY, CS * GW, CS * GH);
+  for (const g of grid) drawTile(g, C);
+  // bones (drawn after floor so links connect)
+  for (const g of grid) if (g.d === 0 && g.bone >= 0) drawBone(g);
+  // string grid
+  ctx.strokeStyle = 'rgba(255,250,230,.35)'; ctx.lineWidth = 1; ctx.beginPath();
+  for (let i = 0; i <= GW; i++) { ctx.moveTo(BX + i * CS, BY); ctx.lineTo(BX + i * CS, BY + GH * CS); }
+  for (let i = 0; i <= GH; i++) { ctx.moveTo(BX, BY + i * CS); ctx.lineTo(BX + GW * CS, BY + i * CS); }
+  ctx.stroke();
+  // stakes
+  ctx.fillStyle = '#d8b070'; for (const [x, y] of [[BX, BY], [BX + GW * CS, BY], [BX, BY + GH * CS], [BX + GW * CS, BY + GH * CS]]) { ctx.beginPath(); ctx.arc(x, y, 4, 0, 7); ctx.fill(); }
+  // cursor
+  if (state === 'play') {
+    const cc = ['#ffe080', '#ff7a4a', '#7ae0f0'][tool], x = BX + cur.c * CS, y = BY + cur.r * CS;
+    ctx.strokeStyle = cc; ctx.lineWidth = 3; ctx.setLineDash([6, 4]); ctx.lineDashOffset = -t * 20; ctx.strokeRect(x + 2, y + 2, CS - 4, CS - 4); ctx.setLineDash([]);
+    if (tool === 2) { ctx.strokeStyle = 'rgba(122,224,240,.5)'; ctx.lineWidth = 1.5; ctx.strokeRect(x - CS + 2, y - CS + 2, CS * 3 - 4, CS * 3 - 4); }
+  }
+  // particles
+  for (let i = parts.length - 1; i >= 0; i--) { const p = parts[i]; p.life -= dt; p.vy += 500 * dt; p.x += p.vx * dt; p.y += p.vy * dt; if (p.life <= 0) { parts.splice(i, 1); continue; } ctx.globalAlpha = Math.min(1, p.life * 2); ctx.fillStyle = p.col; ctx.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s); }
+  ctx.globalAlpha = 1; ctx.restore();
+  drawHud(C);
+  if (banner) { banner.t -= dt; if (banner.t <= 0) banner = null; else {
+    const a = Math.min(1, banner.t * 3, (banner.max - banner.t) * 6); ctx.globalAlpha = a;
+    ctx.font = `bold ${Math.min(34, W / 16)}px Georgia`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const y = BY + CS * GH / 2, tw = ctx.measureText(banner.txt).width + 40;
+    ctx.fillStyle = 'rgba(40,24,12,.85)'; roundRect(W / 2 - tw / 2, y - 26, tw, 52, 12); ctx.fill();
+    ctx.fillStyle = '#ffd890'; ctx.fillText(banner.txt, W / 2, y + 1); ctx.globalAlpha = 1; } }
+}
+function roundRect(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+function drawTile(g, C) {
+  const x = BX + g.c * CS, y = BY + g.r * CS;
+  if (g.d > 0) {
+    let col;
+    if (g.kind === 'rock') col = '#8a8a8a';
+    else if (g.kind === 'tar') col = shade('#3a3030', 1 - (g.d - 1) * .12);
+    else if (g.kind === 'ice') col = ['#d8f0fa', '#a8d4ec', '#7ab0d4', '#5a8ab8'][Math.min(3, g.d - 1)];
+    else col = C.soil[Math.min(3, g.d - 1)];
+    ctx.fillStyle = col; ctx.fillRect(x + 1, y + 1, CS - 2, CS - 2);
+    // texture
+    ctx.fillStyle = 'rgba(0,0,0,.12)';
+    const s = (g.c * 7 + g.r * 13);
+    for (let i = 0; i < 4; i++) { const px = ((s * (i + 3) * 37) % 100) / 100, py = ((s * (i + 5) * 53) % 100) / 100; ctx.fillRect(x + 3 + px * (CS - 8), y + 3 + py * (CS - 8), CS * .08, CS * .06); }
+    if (g.kind === 'rock') { ctx.fillStyle = '#a8a8a8'; ctx.beginPath(); ctx.ellipse(x + CS / 2, y + CS / 2, CS * .38, CS * .3, .3, 0, 7); ctx.fill(); ctx.fillStyle = '#c8c8c8'; ctx.beginPath(); ctx.ellipse(x + CS * .42, y + CS * .4, CS * .14, CS * .08, .3, 0, 7); ctx.fill(); }
+    if (g.kind === 'tar') { ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.beginPath(); ctx.arc(x + CS * .35, y + CS * .35, CS * .08, 0, 7); ctx.arc(x + CS * .65, y + CS * .6, CS * .05, 0, 7); ctx.fill(); }
+    if (g.kind === 'ice') { ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x + CS * .2, y + CS * .75); ctx.lineTo(x + CS * .45, y + CS * .25); ctx.moveTo(x + CS * .5, y + CS * .8); ctx.lineTo(x + CS * .75, y + CS * .4); ctx.stroke(); }
+    // depth pips
+    if (g.kind !== 'rock' && CS >= 22) { ctx.fillStyle = 'rgba(40,20,10,.55)'; for (let i = 0; i < g.d; i++) { ctx.beginPath(); ctx.arc(x + CS - 6 - i * 6, y + CS - 6, 2.2, 0, 7); ctx.fill(); } }
+    // bevel
+    ctx.fillStyle = 'rgba(255,255,255,.15)'; ctx.fillRect(x + 1, y + 1, CS - 2, 2); ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.fillRect(x + 1, y + CS - 3, CS - 2, 2);
+  } else {
+    ctx.fillStyle = shade(C.floor, 1.25); ctx.fillRect(x + 1, y + 1, CS - 2, CS - 2);
+    ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.fillRect(x + 1, y + 1, CS - 2, 4);
+    if (g.bone < 0) { const n = hint(g); if (n > 0) { ctx.font = `bold ${CS * .52}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#f8ecd0'; ctx.fillText(n, x + CS / 2 + 1, y + CS / 2 + 2); ctx.fillStyle = HC[n]; ctx.fillText(n, x + CS / 2, y + CS / 2 + 1); } }
+  }
+  if (g.amber && g.d === 0) { ctx.fillStyle = '#ffa020'; ctx.beginPath(); ctx.arc(x + CS / 2, y + CS / 2, CS * .2, 0, 7); ctx.fill(); }
+  if (g.scan >= 0) { ctx.fillStyle = 'rgba(20,80,100,.85)'; ctx.beginPath(); ctx.arc(x + CS * .22, y + CS * .22, CS * .19, 0, 7); ctx.fill(); ctx.strokeStyle = '#7ae0f0'; ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = '#bff6ff'; ctx.font = `bold ${CS * .24}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(g.scan, x + CS * .22, y + CS * .23); }
+  if (g.flash > 0) { ctx.fillStyle = `rgba(255,240,180,${g.flash * .5})`; ctx.fillRect(x, y, CS, CS); g.flash = Math.max(0, g.flash - .03); }
+}
+function drawBone(g) {
+  const x = BX + (g.c + .5) * CS, y = BY + (g.r + .5) * CS, f = fossils[g.bone];
+  const glow = f.done ? .5 + .5 * Math.sin(t * 4) : 0;
+  ctx.lineCap = 'round';
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+    if (!dx && !dy) continue; const o = cell(g.c + dx, g.r + dy);
+    if (!o || o.bone !== g.bone || o.d > 0) continue;
+    if (dx && dy && ((cell(g.c + dx, g.r) || {}).bone === g.bone || (cell(g.c, g.r + dy) || {}).bone === g.bone)) continue;
+    const ex = x + dx * CS / 2, ey = y + dy * CS / 2;
+    ctx.strokeStyle = '#7a6040'; ctx.lineWidth = CS * .3; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(ex, ey); ctx.stroke();
+    ctx.strokeStyle = g.cracked ? '#d8c4a0' : '#f4e8cc'; ctx.lineWidth = CS * .2; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(ex, ey); ctx.stroke();
+  }
+  if (glow) { ctx.fillStyle = `rgba(255,210,90,${glow * .35})`; ctx.beginPath(); ctx.arc(x, y, CS * .48, 0, 7); ctx.fill(); }
+  ctx.fillStyle = '#7a6040'; ctx.beginPath(); ctx.arc(x, y, CS * .25, 0, 7); ctx.fill();
+  ctx.fillStyle = g.cracked ? '#d8c4a0' : '#f8eed6'; ctx.beginPath(); ctx.arc(x, y, CS * .2, 0, 7); ctx.fill();
+  ctx.fillStyle = 'rgba(160,130,90,.6)'; ctx.beginPath(); ctx.arc(x + CS * .05, y + CS * .05, CS * .07, 0, 7); ctx.fill();
+  if (g.cracked) { ctx.strokeStyle = '#8a2a1a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x - CS * .2, y - CS * .15); ctx.lineTo(x - CS * .02, y + CS * .02); ctx.lineTo(x + CS * .08, y - CS * .08); ctx.lineTo(x + CS * .22, y + CS * .16); ctx.stroke(); }
+}
+function drawHud(C) {
+  ctx.save(); ctx.translate(SAFE.l, SAFE.t); const w = W - SAFE.l - SAFE.r;
+  const land = W > H && H < 500;
+  ctx.fillStyle = 'rgba(40,24,12,.8)'; roundRect(6, 6, w - 12 - 120, HUDH - 10, 12); ctx.fill();
+  if (w < 600 && !land) { ctx.save(); ctx.beginPath(); ctx.rect(6, 6, w - 132, HUDH); ctx.clip(); }
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillStyle = '#ffd890'; ctx.font = `bold ${land ? 14 : 16}px Georgia`;
+  ctx.fillText(`Ch.${ch + 1} ${C.name} · Dig ${dg + 1}/2`, 16, 11);
+  ctx.font = `${land ? 12 : 13}px system-ui`; ctx.fillStyle = '#f0dcb8';
+  const fl = fossils.map(f => { const n = f.cells.filter(([x, y]) => cell(x, y).d === 0).length; return `${f.name} ${f.done ? '✓' : n + '/' + f.cells.length}`; }).join(' · ');
+  ctx.fillText(fl, 16, land ? 29 : 32);
+  const narrow = w < 600;
+  if (!land) { ctx.fillStyle = '#c8b090'; ctx.fillText(`Score ${score + digScore}`, 16, 49); }
+  // stamina bar
+  let bw = Math.min(160, (w - 140) * .35), bx = w - 132 - bw, by = 14;
+  if (narrow && !land) { bw = Math.min(150, w - 230); bx = 50; by = 68; }
+  ctx.fillStyle = '#ffd890'; ctx.font = 'bold 13px system-ui'; ctx.textAlign = 'right'; ctx.fillText(`⚡ ${stamina}`, bx - 6, by);
+  ctx.fillStyle = '#0006'; roundRect(bx, by, bw, 12, 6); ctx.fill();
+  const k = clamp(stamina / Math.max(1, startStam), 0, 1); ctx.fillStyle = k < .2 ? '#ff5a3a' : '#ffc040'; roundRect(bx, by, Math.max(6, bw * k), 12, 6); ctx.fill();
+  ctx.textAlign = narrow && !land ? 'left' : 'right'; ctx.fillStyle = '#9ae8f4'; if (narrow && !land) ctx.fillText(`📡 ${scans}`, bx + bw + 10, by - 1); else ctx.fillText(`📡 ${scans}`, bx + bw, by + 18);
+  if (w < 600 && !land) ctx.restore();
+  ctx.restore();
+}
+function drawTitleArt() {
+  // decorative skeleton silhouette
+  const s = Math.min(W, H) / 14, cx = W / 2, cy = H * .78;
+  ctx.globalAlpha = .25; ctx.strokeStyle = '#3a2010'; ctx.lineCap = 'round'; ctx.lineWidth = s * .35;
+  ctx.beginPath(); ctx.moveTo(cx - s * 5, cy); for (let i = 0; i <= 10; i++) ctx.lineTo(cx - s * 5 + i * s, cy - Math.sin(i / 10 * Math.PI) * s * 1.5 + Math.sin(t + i) * 2); ctx.stroke();
+  for (let i = 2; i < 9; i++) { const x = cx - s * 5 + i * s, y = cy - Math.sin(i / 10 * Math.PI) * s * 1.5; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + s * .3, y + s * 1.6); ctx.stroke(); }
+  ctx.globalAlpha = 1;
+}
+
+// ---------- UI ----------
+function showOnly(id) { for (const o of ['title', 'storyO', 'done', 'over', 'win', 'pause']) $(o).classList.toggle('hidden', o !== id); }
+function hudOn(on) { $('topBtns').classList.toggle('hidden', !on); $('tools').classList.toggle('hidden', !on); }
+function setTool(n) { tool = n; for (let i = 0; i < 3; i++) $('t' + i).classList.toggle('sel', i === n); updTools(); }
+function updTools() { $('scanS').textContent = `${scans} left`; }
+function togglePause() { if (state === 'play') { state = 'paused'; showOnly('pause'); } else if (state === 'paused') { state = 'play'; showOnly(null); } }
+window.__autoPause = () => { if (state === 'play') togglePause(); };
+function toTitle() {
+  state = 'title'; showOnly('title'); hudOn(false);
+  $('hiT').textContent = best ? `Best expedition score: ${best}` : '';
+  const can = progress.ch > 0 || progress.dg > 0; $('contB').classList.toggle('hidden', !can);
+  $('contB').textContent = `CONTINUE · CH.${progress.ch + 1} DIG ${progress.dg + 1}`;
+  $('chapSel').innerHTML = CH.map((c, i) => { const st = (starsRec[i + '-0'] || 0) + (starsRec[i + '-1'] || 0); return `<button data-c="${i}" ${i > progress.ch ? 'disabled' : ''}>Ch.${i + 1} ${c.name}<br>${'★'.repeat(st)}${'☆'.repeat(6 - st)}</button>`; }).join('');
+  $('chapSel').querySelectorAll('button').forEach(b => b.onclick = () => { initAudio(); score = 0; beginChapter(+b.dataset.c); });
+}
+$('startB').onclick = () => { initAudio(); score = 0; beginChapter(0); };
+$('contB').onclick = () => { initAudio(); score = 0; if (progress.dg === 0) beginChapter(progress.ch); else startDig(progress.ch, progress.dg); };
+$('stNext').onclick = nextLine;
+$('dnNext').onclick = afterDig;
+$('dnRetry').onclick = () => { score -= 0; startDig(ch, dg); };
+$('retryB').onclick = () => startDig(ch, dg);
+$('menuB').onclick = toTitle; $('againB').onclick = toTitle; $('quitB').onclick = toTitle;
+$('resumeB').onclick = togglePause; $('pauseB').onclick = togglePause; $('muteB').onclick = () => setMute(!muted);
+for (let i = 0; i < 3; i++) $('t' + i).onclick = () => setTool(i);
+setMute(muted);
+
+addEventListener('keydown', e => {
+  const k = e.code;
+  if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(k)) e.preventDefault();
+  if (e.repeat && !k.startsWith('Arrow')) return;
+  if (k === 'KeyM') { setMute(!muted); return; }
+  if (k === 'KeyP' || k === 'Escape') { togglePause(); return; }
+  if (state === 'story' && (k === 'Space' || k === 'Enter')) { nextLine(); return; }
+  if (state === 'title' && k === 'Enter') { $('startB').click(); return; }
+  if (state === 'done' && k === 'Enter') { afterDig(); return; }
+  if (state === 'over' && k === 'Enter') { startDig(ch, dg); return; }
+  if (state !== 'play') return;
+  if (k === 'ArrowLeft' || k === 'KeyA') cur.c = clamp(cur.c - 1, 0, GW - 1);
+  if (k === 'ArrowRight' || k === 'KeyD') cur.c = clamp(cur.c + 1, 0, GW - 1);
+  if (k === 'ArrowUp' || k === 'KeyW') cur.r = clamp(cur.r - 1, 0, GH - 1);
+  if (k === 'ArrowDown' || k === 'KeyS') cur.r = clamp(cur.r + 1, 0, GH - 1);
+  if (k === 'Digit1') setTool(0); if (k === 'Digit2') setTool(1); if (k === 'Digit3') setTool(2);
+  if (k === 'KeyQ') setTool((tool + 2) % 3); if (k === 'KeyE' || k === 'Tab') setTool((tool + 1) % 3);
+  if (k === 'KeyB') { setTool(0); useTool(cur.c, cur.r); }
+  if (k === 'KeyX') { setTool(1); useTool(cur.c, cur.r); }
+  if (k === 'Space' || k === 'Enter') useTool(cur.c, cur.r);
+});
+function tileAt(px, py) { const c = Math.floor((px - BX) / CS), r = Math.floor((py - BY) / CS); return (c >= 0 && r >= 0 && c < GW && r < GH) ? { c, r } : null; }
+cv.addEventListener('pointermove', e => { if (state !== 'play' || e.pointerType === 'touch') return; const p = tileAt(e.clientX, e.clientY); if (p) cur = p; });
+cv.addEventListener('pointerdown', e => { e.preventDefault(); initAudio(); if (state !== 'play') return; const p = tileAt(e.clientX, e.clientY); if (p) useTool(p.c, p.r); });
+cv.addEventListener('contextmenu', e => e.preventDefault());
+
+window.__bb = {
+  get state() { return state; }, get chapter() { return ch + 1; }, get dig() { return dg + 1; }, get stamina() { return stamina; }, get score() { return score + digScore; },
+  get info() { return { GW, GH, fossils: fossils.map(f => ({ name: f.name, done: f.done, n: f.cells.length })), stamina, scans, cracks }; },
+  goto(c, d = 1) { initAudio(); score = 0; startDig(clamp(c - 1, 0, 5), clamp(d - 1, 0, 1)); },
+  story(c = 1) { initAudio(); beginChapter(clamp(c - 1, 0, 5)); },
+  tool: n => setTool(n), use: (c, r) => useTool(c, r),
+  solveOne() { const f = fossils.find(f => !f.done); if (!f) return; setTool(0); for (const [x, y] of f.cells) { const g = cell(x, y); stamina += g.d * 2; while (g.d > 0) useTool(x, y); } },
+  digSome(n = 6) { setTool(1); let k = 0; for (const g of grid) { if (k >= n) break; if (g.bone < 0 && g.d > 0) { stamina += 3; useTool(g.c, g.r); k++; } } setTool(0); },
+  solve() { while (fossils.some(f => !f.done)) this.solveOne(); },
+};
+
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000); last = now; t += dt;
+  if (shake > 0) shake = Math.max(0, shake - dt * 2);
+  if (state === 'play' && finishT > 0) { finishT -= dt; if (finishT <= 0) { finishT = 0; finish(); } }
+  draw(dt);
+  requestAnimationFrame(frame);
+}
+addEventListener('resize', resize);
+resize(); toTitle(); requestAnimationFrame(frame);
+</script>
+</body>
+</html>
