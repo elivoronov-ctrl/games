@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hivekeepers</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#2a1a05">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
+<link rel="icon" href="data:,">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;touch-action:none;background:#2a1a05;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;
+  font-family:"Avenir Next","Segoe UI","Trebuchet MS",system-ui,sans-serif;color:#fff6dc}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+input,textarea{font-size:max(16px,1em)!important;-webkit-user-select:text;user-select:text;touch-action:manipulation}
+button{touch-action:manipulation;font-family:inherit}
+.overlay{position:fixed;inset:0;padding:calc(16px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
+  display:flex;align-items:center;justify-content:center;box-sizing:border-box;background:radial-gradient(circle at 50% 40%,rgba(90,60,10,.5),rgba(20,10,0,.9));z-index:10}
+.hidden{display:none!important}
+.card{touch-action:pan-y;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;max-height:calc(100% - 8px);overflow:auto;
+  background:linear-gradient(#4a2e08f0,#22140af0);border:3px solid #ffc63d;border-radius:20px;padding:16px 20px;max-width:600px;width:100%;box-sizing:border-box;text-align:center;box-shadow:0 0 40px #ffb30055}
+h1{margin:4px 0;font-size:clamp(38px,10vw,66px);color:#ffd84a;text-shadow:0 4px 0 #8a4a00,0 0 24px #ffae00;line-height:1;letter-spacing:1px;font-weight:900}
+h2{margin:6px 0;color:#ffd84a}
+p{margin:8px 0;line-height:1.4}
+.sub{color:#e8cf9a}
+.how{text-align:left;font-size:13.5px;background:#0005;border-radius:12px;padding:8px 12px;margin:10px 0;line-height:1.5}
+.how b{color:#ffd84a}
+.btn{background:linear-gradient(#ffe27a,#f0a010);color:#3a1e00;border:none;border-radius:14px;padding:12px 26px;font-size:18px;font-weight:900;margin:8px 6px;cursor:pointer;box-shadow:0 4px 0 #8a4a00}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #8a4a00}
+input#nm{background:#1a0e02;border:2px solid #ffc63d;border-radius:10px;color:#fff6dc;padding:8px 12px;width:200px;text-align:center}
+#skins{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:8px 0}
+.sk{width:48px;height:48px;border-radius:50%;border:3px solid #0000;cursor:pointer;position:relative}
+.sk.sel{border-color:#fff}
+.sk:disabled{opacity:.25;cursor:default}
+#ups{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:10px 0}
+.up{background:#1a0e02;border:2px solid #ffc63d88;border-radius:14px;padding:12px 8px;color:#fff6dc;cursor:pointer;min-height:96px;font-size:14px}
+.up b{display:block;color:#ffd84a;font-size:17px;margin-bottom:4px}
+.up .ic{font-size:28px;display:block}
+.up:hover{border-color:#fff}
+#topBtns{position:fixed;top:calc(8px + env(safe-area-inset-top));right:calc(8px + env(safe-area-inset-right));z-index:6;display:flex;gap:8px}
+#topBtns button{min-width:48px;min-height:48px;border-radius:14px;border:2px solid #ffc63d99;background:#0008;color:#ffd84a;font-size:20px;cursor:pointer}
+#topBtns button.off{opacity:.45;text-decoration:line-through}
+#toast{position:fixed;left:50%;transform:translateX(-50%);top:calc(110px + env(safe-area-inset-top));z-index:7;pointer-events:none;font-size:15px;background:#000b;border:1px solid #ffc63d88;border-radius:12px;padding:8px 16px;text-align:center;transition:opacity .4s;opacity:0;max-width:80vw}
+#toast b{color:#ffd84a;font-size:19px;display:block}
+#touch{display:none;position:fixed;inset:0;pointer-events:none;z-index:4}
+#touch.on{display:block}
+#tDash{position:absolute;right:calc(20px + env(safe-area-inset-right));bottom:calc(26px + env(safe-area-inset-bottom));width:86px;height:86px;border-radius:50%;background:#ffc63d33;border:3px solid #ffc63daa;color:#fff;font-weight:900;font-size:15px;pointer-events:auto;touch-action:none}
+#tDash.down{background:#ffc63d88}
+#tHint{position:absolute;left:calc(24px + env(safe-area-inset-left));bottom:calc(30px + env(safe-area-inset-bottom));width:120px;height:120px;border-radius:50%;border:2px dashed #fff4;color:#fff8;font-size:12px;display:flex;align-items:center;justify-content:center;text-align:center}
+</style>
+<script>
+/* iOS / touch hardening: audio unlock+resume, no zoom/scroll, safe-area insets, rotation resize */
+(function(){
+  var ctxs = [], AC = window.AudioContext || window.webkitAudioContext;
+  if (AC) { var Wr = function(o){ var x = o ? new AC(o) : new AC(); ctxs.push(x); return x; }; Wr.prototype = AC.prototype; window.AudioContext = Wr; if (window.webkitAudioContext) window.webkitAudioContext = Wr; }
+  function resume(){ if (window.__canResumeAudio && !window.__canResumeAudio()) return; ctxs.forEach(function(x){ if (x.state !== 'running' && x.state !== 'closed') { try { var p = x.resume(); if (p && p.catch) p.catch(function(){}); } catch(e){} } }); }
+  ['touchend','pointerup','click','keydown'].forEach(function(ev){ addEventListener(ev, resume, true); });
+  document.addEventListener('visibilitychange', function(){ if (document.hidden) { try { window.__autoPause && window.__autoPause(); } catch(e){} } else resume(); });
+  addEventListener('pagehide', function(){ try { window.__autoPause && window.__autoPause(); } catch(e){} });
+  document.addEventListener('gesturestart', function(e){ e.preventDefault(); }, {passive:false});
+  document.addEventListener('dblclick', function(e){ e.preventDefault(); }, {passive:false});
+  document.addEventListener('touchmove', function(e){ var t = e.target; if (t && t.closest && t.closest('.card,input,textarea')) return; if (e.cancelable) e.preventDefault(); }, {passive:false});
+  window.SAFE = {t:0, r:0, b:0, l:0};
+  var probe = null;
+  function readSafe(){ if (!probe && document.body) { probe = document.createElement('div'); probe.style.cssText = 'position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)'; document.body.appendChild(probe); }
+    if (probe) { var s = getComputedStyle(probe); SAFE.t = parseFloat(s.paddingTop)||0; SAFE.r = parseFloat(s.paddingRight)||0; SAFE.b = parseFloat(s.paddingBottom)||0; SAFE.l = parseFloat(s.paddingLeft)||0; } }
+  document.addEventListener('DOMContentLoaded', readSafe); addEventListener('resize', readSafe);
+  var rt = 0; function kick(){ clearTimeout(rt); rt = setTimeout(function(){ readSafe(); dispatchEvent(new Event('resize')); }, 250); }
+  addEventListener('orientationchange', kick);
+  if (window.visualViewport) visualViewport.addEventListener('resize', function(){ if (Math.abs(visualViewport.height - innerHeight) > 1 || Math.abs(visualViewport.width - innerWidth) > 1) kick(); });
+})();
+</script>
+
+</head>
+<body>
+<canvas id="cv"></canvas>
+<div id="topBtns"><button id="bPause" title="Pause (P)">⏸</button><button id="bMute" title="Mute (M)">♪</button></div>
+<div id="toast"></div>
+<div id="touch"><div id="tHint">drag to fly</div><button id="tDash">DASH</button></div>
+
+<div id="ovTitle" class="overlay"><div class="card">
+  <h1>HIVEKEEPERS</h1>
+  <p class="sub">Guard the golden hive through six seasons of raiders.</p>
+  <div class="how">
+    <b>Fly</b> with WASD / arrows, or hold the mouse / drag a finger. Your stinger <b>fires automatically</b> at the nearest raider.<br>
+    Brush over <b>flowers</b> to gather pollen, then bring it <b>home to the hive</b>: it becomes honey, heals the hive and earns XP.<br>
+    Each XP level and each cleared day lets you pick <b>1 of 3 upgrades</b>. <b>Dash</b> (Space / Shift) makes you briefly untouchable.<br>
+    Survive 6 days: Meadow, Clover Rain, Moth Dusk, Orchard Gale, Beetle Summer and the <b>Hornet Queen</b>.<br>
+    <b>Online:</b> other keepers buzz through your meadow and share the leaderboard.
+  </div>
+  <p>Keeper name: <input id="nm" maxlength="12" placeholder="Bee"></p>
+  <div id="skins"></div>
+  <p class="sub" id="best"></p>
+  <button class="btn" id="bStart">Start Day 1</button>
+  <p class="sub" style="font-size:12px">P / Esc pause · M mute</p>
+</div></div>
+
+<div id="ovUp" class="overlay hidden"><div class="card">
+  <h2 id="upT">Level up!</h2><p class="sub" id="upS">Pick one upgrade</p>
+  <div id="ups"></div>
+</div></div>
+
+<div id="ovPause" class="overlay hidden"><div class="card">
+  <h2>Paused</h2><p class="sub" id="pInfo"></p>
+  <button class="btn" id="bResume">Resume</button><button class="btn" id="bQuit">Quit to title</button>
+</div></div>
+
+<div id="ovEnd" class="overlay hidden"><div class="card">
+  <h1 id="eT">Hive Lost</h1><p class="sub" id="eS"></p><p id="eStats"></p>
+  <button class="btn" id="bAgain">Play again</button><button class="btn" id="bMenu">Title</button>
+</div></div>
+
+<script>
+'use strict';
+const SB_URL = 'https://fxaudfluqfkplnjyqylv.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ4YXVkZmx1cWZrcGxuanlxeWx2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM2NjczNTIsImV4cCI6MjEwOTI0MzM1Mn0.IzD6AGIz5NHnoeWGpQP28IySiugtvQL-WZZLqwNa_xI';
+const ROOM = 'hivekeepers-room';
+const myId = Math.random().toString(36).slice(2, 10);
+const $ = id => document.getElementById(id);
+const cv = $('cv'), ctx = cv.getContext('2d');
+let W = 0, H = 0, DPR = 1;
+function resize() { DPR = Math.min(devicePixelRatio || 1, 2); W = innerWidth; H = innerHeight; cv.width = W * DPR | 0; cv.height = H * DPR | 0; }
+addEventListener('resize', resize); resize();
+
+const rnd = (a, b) => a + Math.random() * (b - a);
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+// ---------- storage ----------
+const store = { get(k, d) { try { const v = localStorage.getItem('hivekeepers_' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('hivekeepers_' + k, JSON.stringify(v)); } catch (e) {} } };
+let best = store.get('best', 0), bestDay = store.get('bestDay', 0), skin = store.get('skin', 0);
+
+// ---------- audio ----------
+let AC = null, master = null, muted = store.get('muted', false);
+function initAudio() {
+  if (AC) return;
+  try { AC = new (window.AudioContext || window.webkitAudioContext)(); master = AC.createGain(); master.gain.value = muted ? 0 : 0.5; master.connect(AC.destination); } catch (e) { AC = null; }
+}
+function tone(f, d, type = 'sine', v = 0.2, f2 = 0, delay = 0) {
+  if (!AC || muted) return;
+  try {
+    const t = AC.currentTime + delay, o = AC.createOscillator(), g = AC.createGain();
+    o.type = type; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + d);
+    g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+    o.connect(g); g.connect(master); o.start(t); o.stop(t + d + 0.02);
+  } catch (e) {}
+}
+function noise(d, v = 0.2, freq = 1200) {
+  if (!AC || muted) return;
+  try {
+    const t = AC.currentTime, b = AC.createBuffer(1, AC.sampleRate * d | 0, AC.sampleRate), ch = b.getChannelData(0);
+    for (let i = 0; i < ch.length; i++) ch[i] = (Math.random() * 2 - 1) * (1 - i / ch.length);
+    const s = AC.createBufferSource(), fl = AC.createBiquadFilter(), g = AC.createGain();
+    fl.type = 'bandpass'; fl.frequency.value = freq; g.gain.value = v; s.buffer = b; s.connect(fl); fl.connect(g); g.connect(master); s.start(t);
+  } catch (e) {}
+}
+const sfx = {
+  shoot() { tone(900, 0.06, 'square', 0.04, 1400); },
+  hit() { tone(300, 0.08, 'triangle', 0.1, 180); },
+  kill() { tone(520, 0.12, 'square', 0.08, 1040); noise(0.12, 0.08, 2000); },
+  pollen() { tone(1300 + Math.random() * 300, 0.07, 'sine', 0.05); },
+  deposit() { [660, 830, 990].forEach((f, i) => tone(f, 0.15, 'triangle', 0.1, 0, i * 0.06)); },
+  hurt() { tone(160, 0.25, 'sawtooth', 0.15, 70); noise(0.2, 0.15, 500); },
+  hive() { tone(110, 0.3, 'square', 0.1, 60); },
+  lvl() { [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.2, 'triangle', 0.12, 0, i * 0.08)); },
+  dash() { noise(0.18, 0.12, 3000); tone(400, 0.15, 'sine', 0.06, 900); },
+  boss() { tone(70, 1.2, 'sawtooth', 0.15, 50); },
+};
+let musicT = 0, musicStep = 0;
+const SCALE = [262, 294, 330, 392, 440, 523, 587, 659];
+function music(dt) {
+  if (!AC || muted || state !== 'play') return;
+  musicT -= dt; if (musicT > 0) return;
+  musicT = 0.32; musicStep++;
+  const d = DAYS[day - 1]; const base = d ? d.root : 1;
+  if (musicStep % 2 === 0) tone(SCALE[(musicStep * 3 + (musicStep >> 3)) % 8] * base, 0.25, 'triangle', 0.035);
+  if (musicStep % 8 === 0) tone(SCALE[0] * base / 2, 0.9, 'sine', 0.06);
+  if (musicStep % 8 === 4) tone(SCALE[4] * base / 2, 0.7, 'sine', 0.05);
+}
+
+// ---------- world ----------
+const WW = 2200, WH = 1500;
+const HIVE = { x: WW / 2, y: WH / 2, r: 62 };
+const SKINS = [
+  { n: 'Classic', a: '#ffc21a', b: '#2a1600', day: 0 },
+  { n: 'Clover', a: '#7ee05a', b: '#163a08', day: 1 },
+  { n: 'Dusk', a: '#c89aff', b: '#2a0f4a', day: 2 },
+  { n: 'Gale', a: '#7fd8ff', b: '#06304a', day: 3 },
+  { n: 'Ember', a: '#ff7a3a', b: '#3a0a00', day: 4 },
+  { n: 'Royal', a: '#fff1a8', b: '#7a1a6a', day: 6 },
+];
+const DAYS = [
+  { n: 'Spring Meadow', len: 70, rate: 1.5, mix: { wasp: 1 }, sky: ['#9fe07a', '#5fb04a'], root: 1 },
+  { n: 'Clover Rain', len: 80, rate: 1.25, mix: { wasp: 3, hornet: 1 }, sky: ['#7fb88a', '#3f7a52'], rain: true, root: 0.89 },
+  { n: 'Moth Dusk', len: 85, rate: 1.0, mix: { wasp: 2, hornet: 1, moth: 3 }, sky: ['#6a5a8a', '#2f2a4a'], dark: 0.45, root: 0.84 },
+  { n: 'Orchard Gale', len: 90, rate: 0.85, mix: { wasp: 3, hornet: 2, moth: 2 }, sky: ['#a8c86a', '#6a8a3a'], wind: true, root: 1.06 },
+  { n: 'Beetle Summer', len: 95, rate: 0.75, mix: { wasp: 3, hornet: 2, moth: 1, beetle: 2 }, sky: ['#e0c05a', '#a8802a'], root: 1.12 },
+  { n: 'Hornet Queen', len: 999, rate: 1.2, mix: { wasp: 3, hornet: 2 }, sky: ['#b8704a', '#5a2a1a'], boss: true, dark: 0.25, root: 0.75 },
+];
+const ETYPES = {
+  wasp:   { hp: 2, sp: 70, r: 13, dmg: 4, xp: 2, pts: 10, col: '#ffdf3a', target: 'hive' },
+  hornet: { hp: 6, sp: 95, r: 17, dmg: 10, xp: 5, pts: 25, col: '#ff8a1a', target: 'bee' },
+  moth:   { hp: 2, sp: 120, r: 11, dmg: 2, xp: 1, pts: 6, col: '#d8c8ff', target: 'flower' },
+  beetle: { hp: 30, sp: 38, r: 24, dmg: 14, xp: 10, pts: 60, col: '#3a8a6a', target: 'hive' },
+  queen:  { hp: 420, sp: 45, r: 46, dmg: 20, xp: 80, pts: 1500, col: '#ff5a2a', target: 'hive' },
+};
+
+let state = 'title', day = 1, dayT = 0, spawnT = 0, score = 0, honey = 0, kills = 0, shake = 0, time = 0;
+let bee, enemies = [], shots = [], eshots = [], parts = [], flowers = [], tufts = [], floaters = [], drones = [], rain = [];
+let hive = { hp: 100, max: 100 }, level = 1, xp = 0, xpNext = 10, upq = 0, boss = null, wind = { x: 0, y: 0, t: 0 };
+const cam = { x: WW / 2, y: WH / 2, z: 1 };
+
+function newBee() {
+  return { x: HIVE.x, y: HIVE.y + 90, vx: 0, vy: 0, a: 0, hp: 50, max: 50, inv: 0, dashT: 0, dashCd: 0, fireT: 0, pollen: 0, down: 0,
+    st: { dmg: 1, rate: 3.4, multi: 1, speed: 230, cap: 10, range: 250, pierce: 0, regen: 0, magnet: 40, drones: 0, wax: 0 } };
+}
+function makeWorld() {
+  flowers = []; tufts = [];
+  const cols = ['#ff6aa0', '#ffffff', '#b07aff', '#ff9a3a', '#6ad0ff', '#ffe04a'];
+  for (let i = 0; i < 46; i++) {
+    let x, y; do { x = rnd(80, WW - 80); y = rnd(80, WH - 80); } while (Math.hypot(x - HIVE.x, y - HIVE.y) < 220);
+    flowers.push({ x, y, p: 1, col: cols[i % cols.length], s: rnd(0.8, 1.3), ph: rnd(0, 6), eaten: 0 });
+  }
+  for (let i = 0; i < 500; i++) tufts.push({ x: rnd(0, WW), y: rnd(0, WH), s: rnd(3, 8), k: Math.random() });
+}
+
+// ---------- input ----------
+const keys = {};
+let ptr = null, joy = null, isTouch = matchMedia('(pointer:coarse)').matches;
+function setTouch(on) { isTouch = on; $('touch').classList.toggle('on', on && (state === 'play')); }
+addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code) && e.target.tagName !== 'INPUT') e.preventDefault();
+  if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
+  if (e.code === 'KeyM' && e.target.tagName !== 'INPUT') toggleMute();
+  if ((e.code === 'Space' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') && state === 'play') dash();
+  if (e.code === 'Enter' && state === 'title' && e.target.tagName !== 'BUTTON') startGame();
+});
+addEventListener('keyup', e => { keys[e.code] = false; });
+cv.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'touch') setTouch(true);
+  if (state !== 'play') return;
+  if (e.pointerType === 'touch') { if (!joy) joy = { id: e.pointerId, ox: e.clientX, oy: e.clientY, x: e.clientX, y: e.clientY }; }
+  else ptr = { id: e.pointerId, x: e.clientX, y: e.clientY };
+  try { cv.setPointerCapture(e.pointerId); } catch (er) {}
+});
+cv.addEventListener('pointermove', e => {
+  if (joy && joy.id === e.pointerId) { joy.x = e.clientX; joy.y = e.clientY; }
+  if (ptr && ptr.id === e.pointerId) { ptr.x = e.clientX; ptr.y = e.clientY; }
+});
+const pend = e => { if (joy && joy.id === e.pointerId) joy = null; if (ptr && ptr.id === e.pointerId) ptr = null; };
+cv.addEventListener('pointerup', pend); cv.addEventListener('pointercancel', pend);
+$('tDash').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); $('tDash').classList.add('down'); dash(); });
+$('tDash').addEventListener('pointerup', () => $('tDash').classList.remove('down'));
+$('tDash').addEventListener('pointercancel', () => $('tDash').classList.remove('down'));
+
+// ---------- UI ----------
+function toast(t, s, ms = 2200) { const el = $('toast'); el.innerHTML = '<b>' + t + '</b>' + (s || ''); el.style.opacity = 1; clearTimeout(toast.t); toast.t = setTimeout(() => el.style.opacity = 0, ms); }
+function show(id) { ['ovTitle', 'ovUp', 'ovPause', 'ovEnd'].forEach(o => $(o).classList.toggle('hidden', o !== id)); $('touch').classList.toggle('on', !id && isTouch); }
+function toggleMute() { muted = !muted; store.set('muted', muted); if (master) master.gain.value = muted ? 0 : 0.5; $('bMute').classList.toggle('off', muted); }
+function togglePause() {
+  if (state === 'play') { state = 'paused'; $('pInfo').textContent = 'Day ' + day + ' · ' + DAYS[day - 1].n + ' · Score ' + score; show('ovPause'); joy = ptr = null; }
+  else if (state === 'paused') { state = 'play'; show(null); }
+}
+$('bPause').onclick = () => { initAudio(); togglePause(); };
+$('bMute').onclick = () => { initAudio(); toggleMute(); };
+$('bMute').classList.toggle('off', muted);
+$('bResume').onclick = togglePause;
+$('bQuit').onclick = () => { state = 'title'; titleScreen(); };
+$('bAgain').onclick = () => startGame();
+$('bMenu').onclick = () => { state = 'title'; titleScreen(); };
+$('bStart').onclick = () => startGame();
+$('nm').value = store.get('name', '');
+function myName() { return ($('nm').value || 'Bee').trim().slice(0, 12) || 'Bee'; }
+function titleScreen() {
+  const sk = $('skins'); sk.innerHTML = '';
+  SKINS.forEach((s, i) => {
+    const b = document.createElement('button'); b.className = 'sk' + (i === skin ? ' sel' : '');
+    b.style.background = `repeating-linear-gradient(90deg,${s.a} 0 8px,${s.b} 8px 14px)`;
+    b.title = s.n + (bestDay < s.day ? ' (reach day ' + s.day + ')' : ''); b.disabled = bestDay < s.day;
+    b.onclick = () => { skin = i; store.set('skin', i); titleScreen(); };
+    sk.appendChild(b);
+  });
+  $('best').textContent = 'Best score ' + best + ' · Furthest day ' + bestDay + ' · Colours unlock as you survive more days';
+  show('ovTitle');
+}
+
+// ---------- game flow ----------
+function startGame() {
+  initAudio(); store.set('name', myName());
+  bee = newBee(); enemies = []; shots = []; eshots = []; parts = []; floaters = []; drones = []; boss = null;
+  hive = { hp: 100, max: 100 }; level = 1; xp = 0; xpNext = 10; upq = 0; score = 0; honey = 0; kills = 0;
+  makeWorld(); startDay(1); connect();
+}
+function startDay(d) {
+  day = d; dayT = 0; spawnT = 1; state = 'play'; show(null); boss = null;
+  const D = DAYS[d - 1];
+  rain = []; if (D.rain) for (let i = 0; i < 140; i++) rain.push({ x: rnd(0, 1), y: rnd(0, 1), s: rnd(0.6, 1.2) });
+  flowers.forEach(f => f.p = 1);
+  toast('Day ' + d + ': ' + D.n, D.boss ? 'The Hornet Queen approaches!' : 'Survive ' + D.len + ' seconds', 3000);
+  if (D.boss) { setTimeout(() => { if (state === 'play' || state === 'paused') spawn('queen'); }, 6000); }
+  trackPresence();
+}
+function endDay() {
+  const D = DAYS[day - 1];
+  hive.hp = Math.min(hive.max, hive.hp + 25);
+  score += 200 * day; bestDay = Math.max(bestDay, day); store.set('bestDay', bestDay);
+  enemies.forEach(e => burst(e.x, e.y, e.t.col, 6)); enemies = []; eshots = [];
+  sfx.lvl();
+  if (day >= DAYS.length) return finish(true);
+  offerUpgrades('Day ' + day + ' survived!', D.n + ' cleared · +' + (200 * day) + ' · hive repaired', () => startDay(day + 1));
+}
+function finish(won) {
+  state = won ? 'win' : 'over';
+  if (won) { score += 1000 + Math.round(hive.hp) * 10; bestDay = 6; store.set('bestDay', 6); }
+  const nb = score > best; if (nb) { best = score; store.set('best', best); }
+  $('eT').textContent = won ? 'Hive Saved!' : 'Hive Lost';
+  $('eS').textContent = won ? 'The Hornet Queen flees. The hive will sing of you all winter.' : 'The raiders broke through on day ' + day + ' (' + DAYS[day - 1].n + ').';
+  $('eStats').innerHTML = `Score <b>${score}</b>${nb ? ' · <b style="color:#7f7">NEW BEST</b>' : ''}<br>Raiders stung ${kills} · Honey ${honey} · Keeper level ${level}`;
+  show('ovEnd'); trackPresence();
+}
+const UPGRADES = [
+  { id: 'dmg', ic: '🗡️', n: 'Sharper Sting', d: '+1 sting damage', f: s => s.dmg += 1 },
+  { id: 'rate', ic: '⚡', n: 'Quick Wings', d: '+25% fire rate', f: s => s.rate *= 1.25 },
+  { id: 'multi', ic: '✳️', n: 'Twin Barbs', d: '+1 stinger per volley', f: s => s.multi += 1, max: 5 },
+  { id: 'speed', ic: '💨', n: 'Tailwind', d: '+15% flight speed', f: s => s.speed *= 1.15 },
+  { id: 'cap', ic: '🌼', n: 'Pollen Baskets', d: '+6 pollen capacity, wider gathering', f: s => { s.cap += 6; s.magnet += 15; } },
+  { id: 'range', ic: '🎯', n: 'Keen Eyes', d: '+20% sting range', f: s => s.range *= 1.2 },
+  { id: 'pierce', ic: '➶', n: 'Barbed Tips', d: 'Stingers pierce +1 raider', f: s => s.pierce += 1, max: 3 },
+  { id: 'regen', ic: '🍯', n: 'Royal Jelly', d: 'Heal 2 HP per second', f: s => s.regen += 2 },
+  { id: 'drone', ic: '🐝', n: 'Worker Escort', d: '+1 drone that orbits and stings', f: s => s.drones += 1, max: 4 },
+  { id: 'wax', ic: '⬡', n: 'Wax Walls', d: '+40 hive max HP, raiders hit it 15% softer', f: s => { s.wax += 1; hive.max += 40; hive.hp += 40; } },
+];
+let upCb = null;
+function offerUpgrades(title, sub, cb) {
+  state = 'upgrade'; upCb = cb; joy = ptr = null;
+  $('upT').textContent = title; $('upS').textContent = sub + ' — pick one upgrade';
+  const pool = UPGRADES.filter(u => !u.max || (bee.picks && (bee.picks[u.id] || 0) < u.max) || !bee.picks);
+  const pick = []; while (pick.length < 3 && pool.length) pick.push(pool.splice(Math.random() * pool.length | 0, 1)[0]);
+  const box = $('ups'); box.innerHTML = '';
+  pick.forEach((u, i) => {
+    const b = document.createElement('button'); b.className = 'up'; b.innerHTML = `<span class="ic">${u.ic}</span><b>${u.n}</b>${u.d}<br><small style="color:#e8cf9a">[${i + 1}]</small>`;
+    b.onclick = () => choose(u); box.appendChild(b);
+  });
+  upChoices = pick; show('ovUp');
+}
+let upChoices = [];
+addEventListener('keydown', e => { if (state === 'upgrade' && /^Digit[123]$/.test(e.code)) { const u = upChoices[+e.code.slice(5) - 1]; if (u) choose(u); } });
+function choose(u) {
+  bee.picks = bee.picks || {}; bee.picks[u.id] = (bee.picks[u.id] || 0) + 1; u.f(bee.st);
+  if (u.id === 'drone') drones.push({ a: Math.random() * 6, fire: 0 });
+  sfx.deposit();
+  const cb = upCb; upCb = null; state = 'play'; show(null); if (cb) cb();
+}
+function addXp(n) {
+  xp += n;
+  while (xp >= xpNext) { xp -= xpNext; level++; xpNext = Math.round(xpNext * 1.35 + 4); upq++; }
+}
+
+// ---------- entities ----------
+function spawn(type) {
+  const t = ETYPES[type]; const sa = rnd(0, 6.283), sr = rnd(520, 700);
+  const x = clamp(HIVE.x + Math.cos(sa) * sr, -20, WW + 20), y = clamp(HIVE.y + Math.sin(sa) * sr, -20, WH + 20);
+  const sc = 1 + (day - 1) * 0.18;
+  const e = { type, t, x, y, vx: 0, vy: 0, hp: t.hp * (type === 'queen' ? 1 : sc), max: t.hp * (type === 'queen' ? 1 : sc), ph: rnd(0, 6), atk: 0, flash: 0, fire: 2 };
+  if (type === 'queen') { e.x = HIVE.x; e.y = HIVE.y - 560; boss = e; sfx.boss(); shake = 14; toast('THE HORNET QUEEN', 'Sting her down before she cracks the hive!', 3000); }
+  enemies.push(e);
+}
+function pickType() {
+  const mix = DAYS[day - 1].mix; let tot = 0; for (const k in mix) tot += mix[k];
+  let r = Math.random() * tot; for (const k in mix) { r -= mix[k]; if (r <= 0) return k; } return 'wasp';
+}
+function burst(x, y, col, n, sp = 160) {
+  const cap = isTouch ? 0.6 : 1; n = Math.ceil(n * cap);
+  for (let i = 0; i < n; i++) { const a = rnd(0, 6.28), s = rnd(30, sp); parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, l: rnd(0.3, 0.8), m: 0.8, col, r: rnd(1.5, 4) }); }
+}
+function floater(x, y, txt, col = '#fff') { floaters.push({ x, y, txt, col, l: 1 }); }
+function dash() {
+  if (!bee || state !== 'play' || bee.dashCd > 0 || bee.down > 0) return;
+  let dx = bee.vx, dy = bee.vy; const m = Math.hypot(dx, dy) || 1;
+  bee.vx = dx / m * bee.st.speed * 2.6; bee.vy = dy / m * bee.st.speed * 2.6;
+  bee.dashT = 0.25; bee.inv = Math.max(bee.inv, 0.4); bee.dashCd = 1.6; sfx.dash(); burst(bee.x, bee.y, '#fff7c0', 10, 90);
+}
+function hurtBee(d) {
+  if (bee.inv > 0 || bee.down > 0) return;
+  bee.hp -= d; bee.inv = 0.8; shake = 8; sfx.hurt(); burst(bee.x, bee.y, '#ff6a4a', 12);
+  if (bee.hp <= 0) { bee.down = 4; bee.hp = 0; bee.pollen = 0; toast('Knocked out!', 'Back at the hive in 4 s'); hive.hp -= 5; }
+}
+function hurtHive(d) {
+  hive.hp -= d * Math.pow(0.85, bee.st.wax); shake = Math.max(shake, 5); sfx.hive(); burst(HIVE.x + rnd(-40, 40), HIVE.y + rnd(-40, 40), '#ffb020', 6);
+  if (hive.hp <= 0) { hive.hp = 0; finish(false); }
+}
+
+// ---------- update ----------
+function update(dt) {
+  time += dt;
+  const D = DAYS[day - 1];
+  if (!D.boss) { dayT += dt; if (dayT >= D.len) return endDay(); }
+  else dayT += dt;
+  // spawns
+  spawnT -= dt;
+  if (spawnT <= 0) {
+    const ramp = D.boss ? 1 : 1 - 0.35 * dayT / D.len;
+    spawnT = D.rate * ramp * rnd(0.7, 1.3);
+    const n = 1 + (Math.random() < day * 0.08 ? 1 : 0) + (dayT > D.len * 0.7 && !D.boss ? 1 : 0);
+    for (let i = 0; i < n; i++) spawn(pickType());
+  }
+  // wind
+  if (D.wind) { wind.t += dt; const a = Math.sin(wind.t * 0.21) * 3; const s = 60 + 50 * Math.sin(wind.t * 0.5); wind.x = Math.cos(a) * s; wind.y = Math.sin(a) * s; } else { wind.x = wind.y = 0; }
+  // bee
+  const b = bee, st = b.st;
+  if (b.down > 0) {
+    b.down -= dt; b.x += (HIVE.x - b.x) * Math.min(1, dt * 3); b.y += (HIVE.y + 90 - b.y) * Math.min(1, dt * 3);
+    if (b.down <= 0) { b.hp = b.max; b.inv = 2; }
+  } else {
+    let ix = 0, iy = 0;
+    if (keys.KeyA || keys.ArrowLeft) ix--; if (keys.KeyD || keys.ArrowRight) ix++;
+    if (keys.KeyW || keys.ArrowUp) iy--; if (keys.KeyS || keys.ArrowDown) iy++;
+    if (joy) { const dx = joy.x - joy.ox, dy = joy.y - joy.oy, m = Math.hypot(dx, dy); if (m > 6) { ix = dx / Math.max(m, 50); iy = dy / Math.max(m, 50); } }
+    if (ptr) { const wx = (ptr.x - W / 2) / cam.z + cam.x, wy = (ptr.y - H / 2) / cam.z + cam.y; const dx = wx - b.x, dy = wy - b.y, m = Math.hypot(dx, dy); if (m > 12) { ix = dx / m; iy = dy / m; } }
+    const im = Math.hypot(ix, iy); if (im > 1) { ix /= im; iy /= im; }
+    const acc = b.dashT > 0 ? 0 : 9;
+    b.vx += (ix * st.speed - b.vx) * Math.min(1, dt * acc); b.vy += (iy * st.speed - b.vy) * Math.min(1, dt * acc);
+    b.vx += wind.x * dt * 0.8; b.vy += wind.y * dt * 0.8;
+    b.x = clamp(b.x + b.vx * dt, 20, WW - 20); b.y = clamp(b.y + b.vy * dt, 20, WH - 20);
+    if (Math.hypot(b.vx, b.vy) > 20) b.a = Math.atan2(b.vy, b.vx);
+    b.hp = Math.min(b.max, b.hp + st.regen * dt);
+    // pollen
+    if (b.pollen < st.cap) for (const f of flowers) {
+      if (f.p > 0.2 && Math.hypot(f.x - b.x, f.y - b.y) < st.magnet) { f.p -= 0.2; b.pollen++; sfx.pollen(); parts.push({ x: f.x, y: f.y, vx: (b.x - f.x) * 3, vy: (b.y - f.y) * 3, l: 0.3, m: 0.3, col: '#ffe04a', r: 3 }); if (b.pollen >= st.cap) { toast('Baskets full!', 'Fly home to the hive'); break; } }
+    }
+    if (b.pollen > 0 && Math.hypot(b.x - HIVE.x, b.y - HIVE.y) < HIVE.r + 30) {
+      const p = b.pollen; b.pollen = 0; honey += p; score += p * 5; hive.hp = Math.min(hive.max, hive.hp + p * 0.8); addXp(p * 1.2);
+      sfx.deposit(); floater(HIVE.x, HIVE.y - 70, '+' + p + ' honey', '#ffd84a'); burst(HIVE.x, HIVE.y - 30, '#ffd84a', 14, 120);
+    }
+    // fire
+    b.fireT -= dt;
+    if (b.fireT <= 0) {
+      let tg = null, bd = st.range;
+      for (const e of enemies) { const d = Math.hypot(e.x - b.x, e.y - b.y); if (d < bd + e.t.r) { bd = d; tg = e; } }
+      if (tg) {
+        b.fireT = 1 / st.rate; sfx.shoot();
+        const a0 = Math.atan2(tg.y - b.y, tg.x - b.x);
+        for (let i = 0; i < st.multi; i++) { const a = a0 + (i - (st.multi - 1) / 2) * 0.16; shots.push({ x: b.x, y: b.y, vx: Math.cos(a) * 560, vy: Math.sin(a) * 560, l: 0.7, dmg: st.dmg, p: st.pierce, hit: [] }); }
+      }
+    }
+  }
+  b.inv -= dt; b.dashT -= dt; b.dashCd -= dt;
+  // drones
+  drones.forEach((d, i) => {
+    d.a += dt * 2.2; d.x = b.x + Math.cos(d.a + i * 6.28 / drones.length) * 46; d.y = b.y + Math.sin(d.a + i * 6.28 / drones.length) * 46;
+    d.fire -= dt;
+    if (d.fire <= 0) { let tg = null, bd = 200; for (const e of enemies) { const q = Math.hypot(e.x - d.x, e.y - d.y); if (q < bd) { bd = q; tg = e; } }
+      if (tg) { d.fire = 0.9; const a = Math.atan2(tg.y - d.y, tg.x - d.x); shots.push({ x: d.x, y: d.y, vx: Math.cos(a) * 480, vy: Math.sin(a) * 480, l: 0.6, dmg: Math.max(1, st.dmg * 0.6), p: 0, hit: [], drone: 1 }); } }
+  });
+  // shots
+  for (let i = shots.length - 1; i >= 0; i--) {
+    const s = shots[i]; s.x += s.vx * dt; s.y += s.vy * dt; s.l -= dt;
+    let dead = s.l <= 0;
+    if (!dead) for (const e of enemies) {
+      if (e.hp <= 0 || s.hit.includes(e)) continue;
+      if (Math.hypot(e.x - s.x, e.y - s.y) < e.t.r + 4) {
+        e.hp -= s.dmg; e.flash = 0.1; s.hit.push(e); sfx.hit(); burst(s.x, s.y, '#fff3a0', 3, 80);
+        e.vx += s.vx * 0.05; e.vy += s.vy * 0.05;
+        if (e.hp <= 0) killEnemy(e);
+        if (s.p-- <= 0) { dead = true; break; }
+      }
+    }
+    if (dead) shots.splice(i, 1);
+  }
+  // enemies
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    const e = enemies[i]; if (e.hp <= 0) { enemies.splice(i, 1); continue; }
+    e.ph += dt * 10; e.flash -= dt; e.atk -= dt;
+    let tx = HIVE.x, ty = HIVE.y;
+    if (e.t.target === 'bee' && b.down <= 0) { tx = b.x; ty = b.y; }
+    if (e.t.target === 'flower') {
+      if (!e.fl || e.fl.p <= 0.05) { let bd = 1e9; e.fl = null; for (const f of flowers) { if (f.p <= 0.05) continue; const q = (f.x - e.x) ** 2 + (f.y - e.y) ** 2; if (q < bd) { bd = q; e.fl = f; } } }
+      if (e.fl) { tx = e.fl.x; ty = e.fl.y; }
+    }
+    const dx = tx - e.x, dy = ty - e.y, m = Math.hypot(dx, dy) || 1;
+    const sp = e.t.sp * (1 + (day - 1) * 0.05) * (D.rain ? 0.85 : 1);
+    const wob = e.type === 'moth' ? Math.sin(e.ph * 0.6) * 0.9 : Math.sin(e.ph * 0.3) * 0.3;
+    const ax = dx / m * Math.cos(wob) - dy / m * Math.sin(wob), ay = dy / m * Math.cos(wob) + dx / m * Math.sin(wob);
+    e.vx += (ax * sp - e.vx) * Math.min(1, dt * 3); e.vy += (ay * sp - e.vy) * Math.min(1, dt * 3);
+    e.vx += wind.x * dt * 0.6; e.vy += wind.y * dt * 0.6;
+    e.x += e.vx * dt; e.y += e.vy * dt;
+    // hive contact
+    if (Math.hypot(e.x - HIVE.x, e.y - HIVE.y) < HIVE.r + e.t.r && e.atk <= 0) {
+      e.atk = 1.2; hurtHive(e.t.dmg);
+      e.vx = -dx / m * 160; e.vy = -dy / m * 160;
+      if (state !== 'play') return;
+    }
+    if (e.type === 'moth' && e.fl && Math.hypot(e.x - e.fl.x, e.y - e.fl.y) < 14) { e.fl.p = Math.max(0, e.fl.p - dt * 0.4); }
+    // bee contact
+    if (b.down <= 0 && Math.hypot(e.x - b.x, e.y - b.y) < e.t.r + 10) {
+      if (b.dashT > 0) { e.hp -= st.dmg * 2; e.flash = 0.1; if (e.hp <= 0) killEnemy(e); }
+      else hurtBee(e.t.dmg * 0.7);
+    }
+    // queen behaviour
+    if (e.type === 'queen') {
+      e.fire -= dt;
+      if (e.fire <= 0) {
+        e.fire = e.hp < e.max / 2 ? 1.4 : 2.2;
+        const n = e.hp < e.max / 2 ? 12 : 8;
+        for (let k = 0; k < n; k++) { const a = k / n * 6.28 + time; eshots.push({ x: e.x, y: e.y, vx: Math.cos(a) * 170, vy: Math.sin(a) * 170, l: 4 }); }
+        if (Math.random() < 0.5) for (let k = 0; k < 3; k++) { spawn('wasp'); const w = enemies[enemies.length - 1]; w.x = e.x + rnd(-40, 40); w.y = e.y + rnd(-40, 40); }
+        tone(220, 0.2, 'sawtooth', 0.06, 110);
+      }
+    }
+  }
+  for (let i = eshots.length - 1; i >= 0; i--) {
+    const s = eshots[i]; s.x += s.vx * dt; s.y += s.vy * dt; s.l -= dt;
+    if (b.down <= 0 && Math.hypot(s.x - b.x, s.y - b.y) < 12) { hurtBee(8); s.l = 0; }
+    if (Math.hypot(s.x - HIVE.x, s.y - HIVE.y) < HIVE.r) { hurtHive(3); s.l = 0; if (state !== 'play') return; }
+    if (s.l <= 0) eshots.splice(i, 1);
+  }
+  // flowers regrow
+  for (const f of flowers) f.p = Math.min(1, f.p + dt * (D.rain ? 0.05 : 0.09));
+  // particles
+  for (let i = parts.length - 1; i >= 0; i--) { const p = parts[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.94; p.vy *= 0.94; p.l -= dt; if (p.l <= 0) parts.splice(i, 1); }
+  if (parts.length > 400) parts.splice(0, parts.length - 400);
+  for (let i = floaters.length - 1; i >= 0; i--) { const f = floaters[i]; f.y -= 40 * dt; f.l -= dt * 0.8; if (f.l <= 0) floaters.splice(i, 1); }
+  shake = Math.max(0, shake - dt * 30);
+  updateRemotes(dt); netTick(dt);
+  if (upq > 0 && state === 'play') { upq--; sfx.lvl(); offerUpgrades('Keeper level ' + level + '!', 'Your colony grows stronger', null); }
+}
+function killEnemy(e) {
+  if (e.dead) return; e.dead = true; e.hp = 0;
+  kills++; score += e.t.pts; addXp(e.t.xp); sfx.kill(); burst(e.x, e.y, e.t.col, e.type === 'queen' ? 60 : 14, e.type === 'queen' ? 380 : 200);
+  floater(e.x, e.y - 10, '+' + e.t.pts, '#fff3a0'); shake = Math.max(shake, e.type === 'queen' ? 20 : 3);
+  if (e.type === 'queen') { boss = null; setTimeout(() => { if (state === 'play') endDay(); }, 1500); }
+}
+
+// ---------- multiplayer ----------
+const NET = { connected: false, online: 1, remotes: {}, retry: 0, presence: [], status: 'offline' };
+let client = null, chan = null, netT = 0, presT = 0;
+function connect() {
+  if (chan) return;
+  try {
+    if (!window.supabase) throw new Error('supabase-js not loaded');
+    if (!client) client = window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: false }, realtime: { params: { eventsPerSecond: 20 } } });
+    NET.status = 'connecting';
+    chan = client.channel(ROOM, { config: { broadcast: { self: false, ack: false }, presence: { key: myId } } });
+    chan.on('broadcast', { event: 'm' }, ({ payload }) => onMsg(payload));
+    chan.on('presence', { event: 'sync' }, () => {
+      const st = chan.presenceState(); const list = [];
+      for (const k in st) { const p = st[k][0]; if (p) list.push({ id: k, ...p }); }
+      NET.presence = list; NET.online = Math.max(1, list.length);
+      for (const id in NET.remotes) if (!st[id]) delete NET.remotes[id];
+    });
+    const myChan = chan;
+    chan.subscribe((status, err) => {
+      if (myChan !== chan) return;
+      if (status === 'SUBSCRIBED') { NET.connected = true; NET.status = 'online'; NET.retry = 0; trackPresence(); }
+      else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        NET.connected = false; NET.status = 'offline'; console.warn('realtime', status, err ? (err.message || err) : '');
+        chan = null; try { client.removeChannel(myChan); } catch (e) {}
+        NET.retry++; setTimeout(connect, Math.min(15000, 1500 * NET.retry));
+      }
+    });
+  } catch (e) { NET.connected = false; NET.status = 'offline'; console.warn('multiplayer unavailable:', e.message); }
+}
+function trackPresence() { if (chan && NET.connected) chan.track({ name: myName(), score, status: state === 'play' ? 'Day ' + day : state, skin }).catch(() => {}); }
+function send(p) { if (chan && NET.connected) chan.send({ type: 'broadcast', event: 'm', payload: { id: myId, ...p } }).catch(() => {}); }
+function onMsg(p) {
+  if (!p || p.id === myId) return;
+  if (p.t === 's') {
+    let r = NET.remotes[p.id];
+    if (!r) r = NET.remotes[p.id] = { x: p.x, y: p.y, a: p.a };
+    Object.assign(r, { tx: p.x, ty: p.y, ta: p.a, name: p.n, score: p.sc, skin: p.k | 0, day: p.d, rt: performance.now() });
+  } else if (p.t === 'k') { const r = NET.remotes[p.id]; if (r) burst(p.x, p.y, '#bfe8ff', 8); }
+}
+function updateRemotes(dt) {
+  const now = performance.now(), k = 1 - Math.pow(0.0001, dt);
+  for (const id in NET.remotes) { const r = NET.remotes[id]; if (now - r.rt > 8000) { delete NET.remotes[id]; continue; }
+    r.x += (r.tx - r.x) * k; r.y += (r.ty - r.y) * k; r.a = r.ta; }
+}
+function netTick(dt) {
+  netT -= dt; presT -= dt;
+  if (netT <= 0) { netT = 0.12; send({ t: 's', x: Math.round(bee.x), y: Math.round(bee.y), a: +bee.a.toFixed(2), n: myName(), sc: score, k: skin, d: day }); }
+  if (presT <= 0) { presT = 2; trackPresence(); }
+}
+
+// ---------- draw ----------
+function drawBee(x, y, a, s, sk, alpha = 1, t = time) {
+  const S = SKINS[sk] || SKINS[0];
+  ctx.save(); ctx.translate(x, y); ctx.globalAlpha = alpha;
+  // wings
+  const fl = Math.sin(t * 60) * 0.5 + 0.5;
+  ctx.fillStyle = 'rgba(230,248,255,.7)';
+  ctx.rotate(a);
+  ctx.beginPath(); ctx.ellipse(-2 * s, -9 * s, 8 * s, (4 + fl * 3) * s, -0.4, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(-2 * s, 9 * s, 8 * s, (4 + fl * 3) * s, 0.4, 0, 7); ctx.fill();
+  // body
+  ctx.fillStyle = S.a; ctx.beginPath(); ctx.ellipse(0, 0, 13 * s, 9 * s, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = S.b;
+  for (let i = -1; i <= 1; i++) { ctx.fillRect((i * 6 - 2) * s, -8 * s, 3 * s, 16 * s); }
+  ctx.beginPath(); ctx.arc(12 * s, 0, 5 * s, 0, 7); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(14 * s, -2 * s, 1.6 * s, 0, 7); ctx.arc(14 * s, 2 * s, 1.6 * s, 0, 7); ctx.fill();
+  ctx.fillStyle = S.b; ctx.beginPath(); ctx.moveTo(-13 * s, -3 * s); ctx.lineTo(-20 * s, 0); ctx.lineTo(-13 * s, 3 * s); ctx.fill();
+  ctx.restore();
+}
+function drawEnemy(e) {
+  ctx.save(); ctx.translate(e.x, e.y);
+  const a = Math.atan2(e.vy, e.vx), r = e.t.r, fl = Math.sin(e.ph * 6);
+  ctx.rotate(a);
+  const col = e.flash > 0 ? '#fff' : e.t.col;
+  if (e.type === 'beetle') {
+    ctx.fillStyle = '#1a3a2a'; for (let i = -1; i <= 1; i++) { ctx.fillRect(i * 9 - 2, -r - 4 + fl * 2, 3, 8); ctx.fillRect(i * 9 - 2, r - 4 - fl * 2, 3, 8); }
+    const g = ctx.createRadialGradient(-4, -6, 2, 0, 0, r); g.addColorStop(0, e.flash > 0 ? '#fff' : '#8affd0'); g.addColorStop(1, col);
+    ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(0, 0, r, r * 0.8, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle = '#0a2018'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-r, 0); ctx.lineTo(r * 0.6, 0); ctx.stroke();
+    ctx.fillStyle = '#0a2018'; ctx.beginPath(); ctx.arc(r * 0.9, 0, r * 0.35, 0, 7); ctx.fill();
+  } else if (e.type === 'moth') {
+    ctx.fillStyle = e.flash > 0 ? '#fff' : 'rgba(216,200,255,.85)';
+    ctx.beginPath(); ctx.ellipse(-2, -r * 0.9, r, r * (0.6 + Math.abs(fl) * 0.5), -0.5, 0, 7); ctx.ellipse(-2, r * 0.9, r, r * (0.6 + Math.abs(fl) * 0.5), 0.5, 0, 7); ctx.fill();
+    ctx.fillStyle = '#7a5aa8'; ctx.beginPath(); ctx.ellipse(0, 0, r * 0.8, r * 0.3, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = '#4a2a7a'; ctx.beginPath(); ctx.arc(-3, -r, 3, 0, 7); ctx.arc(-3, r, 3, 0, 7); ctx.fill();
+  } else {
+    const q = e.type === 'queen';
+    ctx.fillStyle = 'rgba(255,240,230,.55)';
+    ctx.beginPath(); ctx.ellipse(-r * 0.2, -r * 0.7, r * 0.8, r * (0.3 + Math.abs(fl) * 0.25), -0.5, 0, 7); ctx.ellipse(-r * 0.2, r * 0.7, r * 0.8, r * (0.3 + Math.abs(fl) * 0.25), 0.5, 0, 7); ctx.fill();
+    ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(-r * 0.3, 0, r * 0.75, r * 0.5, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = '#1a0a00'; for (let i = 0; i < 3; i++) ctx.fillRect(-r * 0.75 + i * r * 0.32, -r * 0.48, r * 0.12, r * 0.96);
+    ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(r * 0.45, 0, r * 0.3, r * 0.28, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = '#1a0a00'; ctx.beginPath(); ctx.moveTo(-r * 1.05, -r * 0.15); ctx.lineTo(-r * 1.4, 0); ctx.lineTo(-r * 1.05, r * 0.15); ctx.fill();
+    ctx.fillStyle = q ? '#ff2020' : '#a00'; ctx.beginPath(); ctx.arc(r * 0.62, -r * 0.13, r * 0.08 + 1, 0, 7); ctx.arc(r * 0.62, r * 0.13, r * 0.08 + 1, 0, 7); ctx.fill();
+    if (q) { ctx.fillStyle = '#ffd84a'; ctx.beginPath(); ctx.moveTo(r * 0.3, -r * 0.3); for (let i = 0; i < 5; i++) { ctx.lineTo(r * (0.2 + (i % 2) * 0.1), -r * 0.3 + i * r * 0.15); } ctx.lineTo(r * 0.3, r * 0.3); ctx.fill(); }
+  }
+  ctx.restore();
+  if (e.hp < e.max && e.type !== 'queen') { ctx.fillStyle = '#0008'; ctx.fillRect(e.x - 14, e.y - e.t.r - 10, 28, 4); ctx.fillStyle = '#f55'; ctx.fillRect(e.x - 14, e.y - e.t.r - 10, 28 * e.hp / e.max, 4); }
+}
+function drawHive() {
+  const x = HIVE.x, y = HIVE.y;
+  ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(x + 10, y + 70, 80, 22, 0, 0, 7); ctx.fill();
+  // branch
+  ctx.strokeStyle = '#5a3a1a'; ctx.lineWidth = 14; ctx.beginPath(); ctx.moveTo(x - 120, y - 92); ctx.quadraticCurveTo(x, y - 100, x + 130, y - 80); ctx.stroke();
+  for (let i = 0; i < 6; i++) {
+    const w = 46 + Math.sin(i / 5 * Math.PI) * 30, yy = y - 70 + i * 24;
+    const g = ctx.createLinearGradient(x - w, yy, x + w, yy); g.addColorStop(0, '#c07a10'); g.addColorStop(0.5, '#ffcf4a'); g.addColorStop(1, '#a86008');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(x, yy, w, 15, 0, 0, 7); ctx.fill();
+  }
+  ctx.fillStyle = '#2a1400'; ctx.beginPath(); ctx.ellipse(x, y + 30, 14, 10, 0, 0, 7); ctx.fill();
+  const hp = hive.hp / hive.max;
+  if (hp < 0.4) { ctx.fillStyle = `rgba(255,60,0,${0.15 + 0.1 * Math.sin(time * 8)})`; ctx.beginPath(); ctx.arc(x, y, 90, 0, 7); ctx.fill(); }
+  // honey drip
+  ctx.fillStyle = '#ffb000'; const dr = (time * 0.5) % 1; ctx.beginPath(); ctx.ellipse(x + 30, y + 50 + dr * 20, 4, 6 + dr * 3, 0, 0, 7); ctx.fill();
+}
+function drawFlower(f) {
+  const s = f.s * (0.7 + 0.3 * f.p), sw = Math.sin(time * 2 + f.ph) * 0.12 + (wind.x ? wind.x / 400 : 0);
+  ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(sw);
+  ctx.fillStyle = f.col; ctx.globalAlpha = 0.45 + 0.55 * f.p;
+  for (let i = 0; i < 6; i++) { ctx.beginPath(); ctx.ellipse(Math.cos(i) * 10 * s, Math.sin(i) * 10 * s, 8 * s, 5 * s, i, 0, 7); ctx.fill(); }
+  ctx.fillStyle = f.p > 0.2 ? '#ffd23a' : '#8a6a3a'; ctx.beginPath(); ctx.arc(0, 0, 6 * s, 0, 7); ctx.fill();
+  ctx.restore();
+  if (f.p > 0.2) { ctx.fillStyle = `rgba(255,230,90,${0.25 * f.p})`; ctx.beginPath(); ctx.arc(f.x, f.y, 20 + 3 * Math.sin(time * 3 + f.ph), 0, 7); ctx.fill(); }
+}
+let grass = null;
+function grassPattern(D) {
+  const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+  g.fillStyle = D.sky[0]; g.fillRect(0, 0, 128, 128);
+  for (let i = 0; i < 90; i++) { g.fillStyle = Math.random() < 0.5 ? D.sky[1] + '55' : '#ffffff18'; g.fillRect(Math.random() * 128, Math.random() * 128, 2, 5); }
+  return ctx.createPattern(c, 'repeat');
+}
+let lastDayDrawn = -1;
+function draw() {
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const D = DAYS[(day || 1) - 1];
+  if (lastDayDrawn !== day) { grass = grassPattern(D); lastDayDrawn = day; }
+  cam.z = clamp(Math.min(W, H) / 640, 0.6, 1.25);
+  if (bee) { cam.x += (bee.x - cam.x) * 0.12; cam.y += (bee.y - cam.y) * 0.12; }
+  else { cam.x = WW / 2 + Math.sin(time * 0.2) * 200; cam.y = WH / 2 + Math.cos(time * 0.17) * 120; }
+  const hw = W / 2 / cam.z, hh = H / 2 / cam.z;
+  cam.x = clamp(cam.x, Math.min(hw, WW / 2), Math.max(WW - hw, WW / 2)); cam.y = clamp(cam.y, Math.min(hh, WH / 2), Math.max(WH - hh, WH / 2));
+  ctx.fillStyle = '#3a2a10'; ctx.fillRect(0, 0, W, H);
+  ctx.save();
+  const sx = shake ? rnd(-shake, shake) : 0, sy = shake ? rnd(-shake, shake) : 0;
+  ctx.translate(W / 2 + sx, H / 2 + sy); ctx.scale(cam.z, cam.z); ctx.translate(-cam.x, -cam.y);
+  ctx.fillStyle = grass; ctx.fillRect(0, 0, WW, WH);
+  const vx0 = cam.x - hw - 20, vx1 = cam.x + hw + 20, vy0 = cam.y - hh - 20, vy1 = cam.y + hh + 20;
+  ctx.fillStyle = D.sky[1];
+  for (const t of tufts) { if (t.x < vx0 || t.x > vx1 || t.y < vy0 || t.y > vy1) continue; ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.moveTo(t.x - t.s, t.y); ctx.lineTo(t.x - t.s * 0.3, t.y - t.s * 2); ctx.lineTo(t.x, t.y); ctx.lineTo(t.x + t.s * 0.4, t.y - t.s * 1.8); ctx.lineTo(t.x + t.s, t.y); ctx.fill(); }
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = '#0003'; ctx.lineWidth = 8; ctx.strokeRect(0, 0, WW, WH);
+  for (const f of flowers) if (f.x > vx0 && f.x < vx1 && f.y > vy0 && f.y < vy1) drawFlower(f);
+  drawHive();
+  for (const id in NET.remotes) { const r = NET.remotes[id]; drawBee(r.x, r.y, r.a || 0, 1, r.skin, 0.55); ctx.fillStyle = '#fff'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(r.name || 'Bee', r.x, r.y - 22); }
+  for (const e of enemies) if (e.x > vx0 - 50 && e.x < vx1 + 50 && e.y > vy0 - 50 && e.y < vy1 + 50) drawEnemy(e);
+  for (const s of shots) { ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(Math.atan2(s.vy, s.vx)); ctx.fillStyle = 'rgba(255,240,120,.35)'; ctx.fillRect(-16, -3, 18, 6); ctx.fillStyle = '#3a1e00'; ctx.beginPath(); ctx.moveTo(9, 0); ctx.lineTo(-7, -3); ctx.lineTo(-7, 3); ctx.fill(); ctx.fillStyle = '#fff'; ctx.fillRect(-5, -1, 10, 2); ctx.restore(); }
+  ctx.fillStyle = '#ff5a2a'; for (const s of eshots) { ctx.beginPath(); ctx.arc(s.x, s.y, 6, 0, 7); ctx.fill(); }
+  for (const d of drones) if (d.x != null) drawBee(d.x, d.y, time * 3, 0.55, skin, 0.9);
+  if (bee) {
+    if (bee.down <= 0) {
+      if (bee.inv > 0 && Math.floor(time * 20) % 2) ctx.globalAlpha = 0.4;
+      if (bee.dashT > 0) { ctx.fillStyle = 'rgba(255,250,200,.35)'; ctx.beginPath(); ctx.arc(bee.x, bee.y, 26, 0, 7); ctx.fill(); }
+      drawBee(bee.x, bee.y, bee.a, 1.15, skin);
+      ctx.globalAlpha = 1;
+      if (bee.pollen > 0) { ctx.fillStyle = '#ffe04a'; ctx.beginPath(); ctx.arc(bee.x - 4, bee.y + 12, 3 + 5 * bee.pollen / bee.st.cap, 0, 7); ctx.fill(); }
+    } else { drawBee(bee.x, bee.y, time * 4, 0.9, skin, 0.4); }
+  }
+  for (const p of parts) { ctx.globalAlpha = Math.max(0, p.l / p.m); ctx.fillStyle = p.col; ctx.fillRect(p.x - p.r / 2, p.y - p.r / 2, p.r, p.r); }
+  ctx.globalAlpha = 1;
+  ctx.font = 'bold 15px sans-serif'; ctx.textAlign = 'center';
+  for (const f of floaters) { ctx.globalAlpha = f.l; ctx.fillStyle = f.col; ctx.fillText(f.txt, f.x, f.y); }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+  // weather / darkness overlays (screen space)
+  if (D.dark && bee) {
+    const px = (bee.x - cam.x) * cam.z + W / 2, py = (bee.y - cam.y) * cam.z + H / 2;
+    const g = ctx.createRadialGradient(px, py, 60 * cam.z, px, py, 340 * cam.z);
+    g.addColorStop(0, 'rgba(10,0,30,0)'); g.addColorStop(1, `rgba(10,0,30,${D.dark + 0.25})`);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  }
+  if (D.rain) { ctx.strokeStyle = 'rgba(200,230,255,.35)'; ctx.lineWidth = 1.5; ctx.beginPath(); for (const r of rain) { r.y = (r.y + 0.012 * r.s) % 1; const x = r.x * W + r.y * 60, y = r.y * H; ctx.moveTo(x, y); ctx.lineTo(x - 6, y - 16); } ctx.stroke(); }
+  if (D.wind && state === 'play') { ctx.strokeStyle = 'rgba(255,255,255,.25)'; ctx.lineWidth = 2; for (let i = 0; i < 12; i++) { const y = (i * 97 + time * 30) % H, x = ((i * 211 + time * wind.x * 3) % (W + 200) + W + 200) % (W + 200) - 100; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + wind.x * 0.6, y + wind.y * 0.6); ctx.stroke(); } }
+  if (state !== 'title' && bee) drawHud(D);
+  // joystick
+  if (joy) { ctx.strokeStyle = '#fff6'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(joy.ox, joy.oy, 50, 0, 7); ctx.stroke(); ctx.fillStyle = '#ffc63d88'; const dx = joy.x - joy.ox, dy = joy.y - joy.oy, m = Math.min(50, Math.hypot(dx, dy)), a = Math.atan2(dy, dx); ctx.beginPath(); ctx.arc(joy.ox + Math.cos(a) * m, joy.oy + Math.sin(a) * m, 22, 0, 7); ctx.fill(); }
+}
+function bar(x, y, w, h, v, c, label) {
+  ctx.fillStyle = '#0009'; ctx.fillRect(x, y, w, h); ctx.fillStyle = c; ctx.fillRect(x + 2, y + 2, (w - 4) * clamp(v, 0, 1), h - 4);
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'left'; ctx.fillText(label, x + 6, y + h - 4);
+}
+function drawHud(D) {
+  ctx.save(); ctx.translate(SAFE.l, SAFE.t);
+  const w = W - SAFE.l - SAFE.r, h = H - SAFE.t - SAFE.b;
+  const bw = Math.min(200, (w - 140) / 2);
+  ctx.fillStyle = '#0007'; ctx.fillRect(8, 8, bw + 12, 92);
+  ctx.fillStyle = '#ffd84a'; ctx.font = 'bold 18px sans-serif'; ctx.textAlign = 'left'; ctx.fillText('★ ' + score, 14, 28);
+  bar(14, 34, bw, 16, hive.hp / hive.max, '#ffa820', 'HIVE ' + Math.ceil(hive.hp) + '/' + hive.max);
+  bar(14, 54, bw, 16, bee.hp / bee.max, '#ff5a5a', 'BEE ' + Math.ceil(bee.hp));
+  bar(14, 74, bw, 16, xp / xpNext, '#7ae0ff', 'LV ' + level + '  · pollen ' + bee.pollen + '/' + bee.st.cap);
+  // day info centre-top
+  ctx.textAlign = 'center'; ctx.fillStyle = '#0007';
+  const cx = w / 2, tw = Math.min(220, w - bw - 150);
+  if (tw > 90) {
+    ctx.fillRect(cx - tw / 2 + 40, 8, tw - 40, 40);
+    ctx.fillStyle = '#fff6dc'; ctx.font = 'bold 13px sans-serif'; ctx.fillText('DAY ' + day + ' · ' + D.n, cx + 20, 24, tw - 50);
+    if (!D.boss) bar(cx - tw / 2 + 46, 30, tw - 52, 12, dayT / D.len, '#a8e060', '');
+    else if (boss) bar(cx - tw / 2 + 46, 30, tw - 52, 12, boss.hp / boss.max, '#ff3a2a', '');
+  } else {
+    ctx.fillStyle = '#fff6dc'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText('DAY ' + day + (D.boss ? (boss ? ' · QUEEN ' + Math.ceil(100 * boss.hp / boss.max) + '%' : '') : ' · ' + Math.max(0, Math.ceil(D.len - dayT)) + 's'), 14, 116);
+  }
+  // online
+  ctx.textAlign = 'right'; ctx.font = 'bold 12px sans-serif';
+  ctx.fillStyle = NET.connected ? '#9f9' : '#fc9';
+  ctx.fillText(NET.connected ? '● ' + NET.online + ' online' : (NET.status === 'connecting' ? '○ connecting…' : '○ offline: solo'), w - 10, 76);
+  if (NET.connected && NET.presence.length > 1) {
+    const top = [...NET.presence].sort((a, b) => (b.score || 0) - (a.score || 0)).slice(0, 4);
+    ctx.fillStyle = '#fff6dc'; top.forEach((p, i) => ctx.fillText((p.name || 'Bee') + ' ' + (p.score || 0), w - 10, 94 + i * 15));
+  }
+  // dash cooldown
+  if (bee.dashCd > 0) { ctx.fillStyle = '#fff8'; ctx.textAlign = 'center'; ctx.fillText('dash ' + bee.dashCd.toFixed(1), w / 2, h - 12); }
+  // hive direction arrow when far
+  const hx = (HIVE.x - cam.x) * cam.z + W / 2 - SAFE.l, hy = (HIVE.y - cam.y) * cam.z + H / 2 - SAFE.t;
+  if (hx < 0 || hy < 0 || hx > w || hy > h) {
+    const a = Math.atan2(hy - h / 2, hx - w / 2), ax = clamp(hx, 30, w - 30), ay = clamp(hy, 120, h - 30);
+    ctx.save(); ctx.translate(ax, ay); ctx.rotate(a); ctx.fillStyle = bee.pollen >= bee.st.cap ? '#ffd84a' : '#ffd84a99';
+    ctx.beginPath(); ctx.moveTo(14, 0); ctx.lineTo(-8, -10); ctx.lineTo(-8, 10); ctx.fill(); ctx.restore();
+  }
+  ctx.restore();
+}
+
+// ---------- loop ----------
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (state === 'play') { update(dt); music(dt); }
+  else { time += dt; shake = Math.max(0, shake - dt * 30); if (state !== 'title') updateRemotes(dt); }
+  draw();
+  requestAnimationFrame(frame);
+}
+titleScreen(); makeWorld();
+requestAnimationFrame(frame);
+
+window.__autoPause = () => { if (state === 'play') togglePause(); };
+window.__hive = {
+  get state() { return state; }, get day() { return day; }, get score() { return score; }, get level() { return level; },
+  get hive() { return Math.round(hive.hp); }, get enemies() { return enemies.length; }, get pollen() { return bee ? bee.pollen : 0; },
+  get connected() { return NET.connected; }, get online() { return NET.online; }, get net() { return NET.status; },
+  remotes: () => Object.values(NET.remotes).map(r => r.name),
+  start: () => startGame(),
+  goto(d) { if (!bee) startGame(); enemies = []; eshots = []; startDay(clamp(d | 0, 1, 6)); return day; },
+  teleport(x, y) { bee.x = x; bee.y = y; cam.x = x; cam.y = y; },
+  skipTime(s) { dayT += s; },
+  spawn(t, n = 1) { for (let i = 0; i < n; i++) spawn(t); },
+  pick(i = 0) { if (state === 'upgrade' && upChoices[i]) choose(upChoices[i]); return state; },
+  god() { hive.hp = hive.max = 9999; bee.hp = bee.max = 9999; },
+};
+</script>
+</body>
+</html>
